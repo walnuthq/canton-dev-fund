@@ -27,7 +27,9 @@ Build the core tooling needed for source-aware Canton transaction debugging.
 - Add `dpm trace <update-id>` so developers can inspect already committed updates from the CLI.
 - Add an interactive debugger so developers can inspect committed updates and replay captured trace bundles.
 
-The Canton developer survey mentions Tenderly-like or Foundry-like tooling. We agree with the direction, but Canton is not EVM. Canton has participant-scoped privacy, Daml packages, package vetting, and Ledger API projections. A direct copy of EVM forking or global transaction debugging would be the wrong model.
+We are open to adjusting the details with Canton developers, Daml/Canton maintainers, and the Tech & Ops Committee so the work solves the right problems.
+
+The Canton developer survey mentions Tenderly-like or Foundry-like tooling. We agree with the direction, but a 1:1 copy does not fit Canton. We propose implementing only what matters for Canton.
 
 We first looked at the current Canton stack and found useful primitives already exist:
 
@@ -42,7 +44,7 @@ The gaps are:
 - There is no interactive inspection workflow for committed updates.
 - Current package metadata can help decode Daml values, templates, choices, and fields, but it does not give debuggers reliable source locations or expression-level information.
 - There is no **standard** format for representing Daml/Canton debugging information.
-- There is no common source/debug metadata registry comparable to source verification systems in other smart contract ecosystems. This is useful, but can be treated as optional follow-on work after the core trace/debug-info tooling is in place.
+- There is no source code / debug metadata registry comparable to source code verification systems in the Ethereum ecosystem. This would be useful for debugging remote transactions. We propose treating it as a more advanced feature that can be implemented as a follow-on later.
 
 This proposal focuses on those gaps.
 
@@ -230,6 +232,7 @@ The compiler debug-info flag is opt-in. DARs built without debug information con
 - Define deterministic debug step IDs for source expressions and emit them in the debug-info artifact, so runtime/debugger events can reference exact Daml source spans.
 - `dpm trace --debug-info <file>` support.
 - Runtime integration note describing what Daml-LF/interpreter debug events are needed for full expression-level stepping.
+- Documentation for generating debug-info artifacts and using them with `dpm trace`.
 
 **Acceptance Criteria:**
 
@@ -308,11 +311,10 @@ The project duration is expected to be under 6 months. Should the project timeli
 
 ## Co-Marketing
 
-Upon release, Walnut will collaborate with the Canton Foundation on:
+Walnut is happy to collaborate with Canton on co-marketing if there is interest. Examples of content we could create together:
 
 - A technical blog post explaining transaction debugging under Canton’s participant privacy model.
 - A short demo video showing `dpm trace`, interactive debugging, and source-aware traces.
-- Developer documentation and examples for local and remote participant workflows.
 - A follow-up writeup comparing local script traces, committed update traces, and source-aware debugging.
 
 ---
@@ -339,6 +341,8 @@ The right first step is to build the debugging toolchain in layers:
 4. And optionally, a metadata registry so source-aware debugging works outside a single local checkout.
 
 This approach fits Canton’s architecture. It starts with participant-visible data, keeps privacy boundaries explicit, reuses DPM and Ledger APIs, and only proposes compiler work where the current metadata is not enough.
+
+This proposal is not the whole "Tenderly for Canton" story. It focuses on the lower-level building blocks first: update tracing, replay bundles, and debug metadata. Follow-on work could include a Web UI, DAP/VS Code support, and simulation tools, all areas where Walnut already has relevant experience.
 
 Walnut is well suited for this work. Our team has four years of experience building blockchain debugging and observability tooling, including:
 
