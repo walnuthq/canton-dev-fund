@@ -50,7 +50,7 @@ This proposal focuses on those gaps.
 
 ### 2. Implementation Mechanics
 
-The work is split into three core components and one optional follow-on component.
+The work is split into three core components.
 
 #### DPM Trace CLI
 
@@ -120,19 +120,6 @@ damlc build --debug-info
 ```
 
 This is similar in spirit to mature debug-info ecosystems such as DWARF on Unix-like systems and PDB/CodeView on Windows. In web3, Ethereum has recently started standardizing this problem through the `ethdebug` format. A shared Canton debug-info schema would give compiler, debugger, profiler, and other tooling authors a common target to build against.
-
-#### Optional Follow-On: Source and Debug Metadata Registry
-
-As an optional follow-on, build an open-source registry for verified Daml source and debug metadata.
-
-This does not replace Canton package upload or package vetting. Vetting says a participant is willing to process a package. Source/debug verification says that a given source tree and debug-info artifact correspond to a given package id.
-
-The registry should support two operating modes:
-
-- Hosted or permissioned instance for open-source Canton packages, examples, and ecosystem packages.
-- Self-hosted/private instance for institutions that cannot publish source externally.
-
-The registry stores DARs where permitted, source files, package ids, debug-info artifacts, template/choice/field metadata, source spans, and optional repository metadata. `dpm trace` can then look up metadata by package id to make historical traces source-aware.
 
 ### 3. Architectural Alignment
 
@@ -242,28 +229,6 @@ The compiler debug-info flag is opt-in. DARs built without debug information con
 - The schema is documented and versioned.
 - The design is shared with Daml/Canton maintainers.
 
-### Optional Milestone 4: Source and Debug Metadata Registry
-
-**Estimated Delivery:** 4 weeks after Milestone 3 acceptance  
-**Focus:** Optional follow-on to make source-aware debugging usable beyond a local checkout.
-
-**Deliverables / Value Metrics:**
-
-- Open-source registry service for package/source/debug metadata.
-- CLI upload and lookup commands.
-- Lookup by package id.
-- Verification flow that checks source/debug-info correspondence to package id.
-- Hosted Walnut demo instance for public or permissioned packages.
-- Self-hosting guide for private institutional deployments.
-- Documentation explaining how this complements, and does not replace, package vetting.
-
-**Acceptance Criteria:**
-
-- A package can be uploaded or verified and then resolved by package id.
-- `dpm trace` can fetch metadata from the registry and use it for source-aware traces.
-- The self-hosted deployment path can be run by an institution without sending private source to Walnut.
-- At least one open-source/sample package is published to the hosted instance as a working example.
-
 ---
 
 ## Acceptance Criteria
@@ -277,31 +242,24 @@ The Tech & Ops Committee will evaluate completion based on:
 - Debug-info artifacts are versioned, documented, and matched to package ids.
 - All software is released as open source under Apache-2.0 unless otherwise agreed.
 - Documentation includes local development and authorized remote participant workflows.
-- If Optional Milestone 4 is accepted, documentation also includes private/self-hosted registry workflows.
 
 Ecosystem value will be measured by:
 
 - Working CLI trace and interactive debugger demos against representative Canton examples.
 - Feedback from Canton ecosystem developers, Daml/Canton maintainers, or Tech & Ops reviewers.
 - A reviewed and documented debug-info schema that can be reused by future tools.
-- If Optional Milestone 4 is accepted, a working metadata registry example for both hosted and self-hosted workflows.
 
 ---
 
 ## Funding
 
-**Core Funding Request:** 750,000 Canton Coin
-
-**Optional Add-On Funding Request:** 200,000 Canton Coin
-
-**Total Funding Request if Optional Milestone 4 is accepted:** 950,000 Canton Coin
+**Funding Request:** 750,000 Canton Coin
 
 ### Payment Breakdown by Milestone
 
 - Milestone 1, Transaction Trace CLI: 150,000 CC upon committee acceptance
 - Milestone 2, Interactive Debugger: 350,000 CC upon committee acceptance
 - Milestone 3, Debug Information Standard and Compiler Support: 250,000 CC upon committee acceptance
-- Optional Milestone 4, Source and Debug Metadata Registry: 200,000 CC upon final release and acceptance
 
 ### Volatility Stipulation
 
@@ -338,7 +296,6 @@ The right first step is to build the debugging toolchain in layers:
 1. A small trace command that proves committed updates can become developer-readable.
 2. An interactive debugger that makes traces navigable and useful during real development.
 3. A debug-info standard so source mapping is based on compiler-generated metadata.
-4. And optionally, a metadata registry so source-aware debugging works outside a single local checkout.
 
 This approach fits Canton’s architecture. It starts with participant-visible data, keeps privacy boundaries explicit, reuses DPM and Ledger APIs, and only proposes compiler work where the current metadata is not enough.
 
@@ -351,6 +308,39 @@ Walnut is well suited for this work. Our team has four years of experience build
 - StylusDB, a CLI debugger for Arbitrum Stylus and cross-VM Solidity/Rust debugging workflows.
 
 The end result is not just a nicer CLI. It is a shared debugging substrate that can later support a full web UI, richer replay, profiling, coverage, and more advanced Canton development workflows.
+
+---
+
+## Potential Follow-Ons
+
+The work in this proposal is intended to be a foundation. Once the core toolchain is in place, several extensions become natural follow-ons. They are listed here for context only and are **not part of this funding request**. Any of them can be picked up later as separate proposals once the core deliverables have been validated by the ecosystem.
+
+### Source and Debug Metadata Registry
+
+An open-source registry for verified Daml source and debug metadata, so source-aware debugging works for packages a developer has not built locally.
+
+This would not replace Canton package upload or package vetting. Vetting says a participant is willing to process a package; source/debug verification would say that a given source tree and debug-info artifact correspond to a given package id.
+
+Likely shape:
+
+- Hosted or permissioned instance for open-source Canton packages, examples, and ecosystem packages.
+- Self-hosted/private instance for institutions that cannot publish source externally.
+- Storage of DARs where permitted, source files, package ids, debug-info artifacts, template/choice/field metadata, source spans, and optional repository metadata.
+- `dpm trace` lookup by package id to make historical traces source-aware.
+
+Open questions to resolve before this becomes its own proposal:
+
+- Reproducibility of `damlc` builds across SDK versions, OS, and build environments, and a verification status model that handles partial matches.
+- Threat model: who can publish, anti-squatting on package ids, source poisoning, and spam control.
+- Licensing of registry data (separate from the Apache-2.0 code license).
+- How pre-existing DARs without debug info are represented.
+
+### Other Likely Follow-Ons
+
+- A web UI on top of the trace bundle format and debug-info standard.
+- A DAP-compatible adapter and VS Code extension for the interactive debugger.
+- Simulation and what-if tooling on top of replay bundles.
+- Profiling and coverage extensions to the debug-info schema.
 
 ---
 
