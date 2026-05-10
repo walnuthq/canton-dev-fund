@@ -156,7 +156,7 @@ The compiler debug-info flag is opt-in. DARs built without debug information con
 
 ### Milestone 1: Transaction Trace CLI
 
-**Estimated Delivery:** 2 weeks from start  
+**Estimated Delivery:** 4 weeks from start
 **Focus:** One useful command to inspect committed updates.
 
 **Deliverables / Value Metrics:**
@@ -182,7 +182,7 @@ The compiler debug-info flag is opt-in. DARs built without debug information con
 
 ### Milestone 2: Trace Bundles
 
-**Estimated Delivery:** 3 weeks after Milestone 1 acceptance
+**Estimated Delivery:** 4 weeks after Milestone 1 acceptance
 **Focus:** Make committed updates portable and reusable.
 
 **Deliverables / Value Metrics:**
@@ -239,7 +239,7 @@ The compiler debug-info flag is opt-in. DARs built without debug information con
 
 ### Milestone 4: Debug Information Format and Compiler Integration
 
-**Estimated Delivery:** 4 weeks after Milestone 3 acceptance  
+**Estimated Delivery:** 6 weeks after Milestone 3 acceptance
 **Focus:** Make source-aware debugging reliable by defining and emitting debug metadata.
 
 **Deliverables / Value Metrics:**
@@ -321,18 +321,14 @@ Open questions to resolve before this becomes its own proposal:
 
 ## Funding
 
-**Total Funding Request:** 900,000 Canton Coin
+**Total Funding Request:** 1,580,000 Canton Coin
 
 ### Payment Breakdown by Milestone
 
-- Milestone 1, Transaction Trace CLI: 150,000 CC upon committee acceptance
-- Milestone 2, Trace Bundles: 250,000 CC upon committee acceptance
-- Milestone 3, Interactive Debugger: 250,000 CC upon committee acceptance
-- Milestone 4, Debug Information Format and Compiler Integration: 250,000 CC upon committee acceptance
-
-### Volatility Stipulation
-
-The project duration is expected to be under 6 months. Should the project timeline extend beyond 6 months due to Committee-requested scope changes, any remaining milestones must be renegotiated to account for significant USD/CC price volatility.
+- Milestone 1, Transaction Trace CLI: 320,000 CC upon committee acceptance
+- Milestone 2, Trace Bundles: 320,000 CC upon committee acceptance
+- Milestone 3, Interactive Debugger: 320,000 CC upon committee acceptance
+- Milestone 4, Debug Information Format and Compiler Integration: 620,000 CC upon committee acceptance
 
 ---
 
