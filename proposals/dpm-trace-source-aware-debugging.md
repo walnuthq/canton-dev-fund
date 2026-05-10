@@ -377,6 +377,8 @@ Walnut is well suited for this work. Our team has four years of experience build
 
 ## References
 
+- `dpm trace` proof of concept: https://github.com/walnuthq/dpm-trace
+- Initial `damlc --debug-info` support branch: https://github.com/walnuthq/daml/tree/feature/debug-info
 - JSON Ledger API OpenAPI: https://docs.digitalasset.com/build/3.4/reference/json-api/openapi.html
 - Canton package management and vetting: https://docs.daml.com/canton/usermanual/packagemanagement.html#understanding-package-vetting
 - ETHDebug format: https://ethdebug.github.io/format/
