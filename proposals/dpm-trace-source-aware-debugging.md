@@ -369,11 +369,9 @@ This proposal is not the whole "Tenderly for Canton" story. It focuses on the lo
 
 Walnut is well suited for this work. Our team has four years of experience building blockchain debugging and observability tooling, including:
 
-- Starknet Debugger, a multi-year partnership with StarkWare covering debug-info generation, transaction simulation, contract verification, network forking, and hosted debugger UI.
-- ETHDebug work in the Solidity compiler ecosystem, helping standardize debug information for EVM smart contracts.
-- StylusDB, a CLI debugger for Arbitrum Stylus and cross-VM Solidity/Rust debugging workflows.
-
-The end result is not just a nicer CLI. It is a shared debugging substrate that can later support a full web UI, richer replay, profiling, coverage, and more advanced Canton development workflows.
+- [Walnut Starknet Debugger](https://walnut.dev/), a multi-year partnership with StarkWare covering debug-info generation, transaction simulation, contract verification, network forking, and hosted debugger UI.
+- [Debug info generation in the official Solidity compiler, `solc`](https://github.com/argotorg/solidity), a one-year collaboration with the Ethereum Foundation / Argot Collective, to be extended.
+- [StylusDB](https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/cargo-stylus/docs/StylusDebugger.md), a CLI debugger for Arbitrum Stylus and cross-VM Solidity/Rust debugging workflows.
 
 ---
 
