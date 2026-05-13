@@ -1,6 +1,6 @@
 # Development Fund Proposal: DPM Trace and Source-Aware Debugging
 
-**Author:** Walnut (https://walnut.dev)
+**Author:** [Walnut](https://walnut.dev)
 **Status:** Draft  
 **Created:** 2026-05-08  
 **Label:** daml-tooling  
