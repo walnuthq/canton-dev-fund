@@ -5,7 +5,9 @@
 **Created:** 2026-05-08<br>
 **Label:** daml-tooling<br>
 **Champion:** Need Champion<br>
+
 ---
+
 ## Table of Contents
 - [Abstract](#abstract)
 - [Specification](#specification)
@@ -28,13 +30,18 @@
 - [Rationale](#rationale)
 - [About the Team](#about-the-team)
 - [References](#references)
+
 ---
+
 ## Abstract
 We propose to build `dpm trace`, an open-source DPM plugin for inspecting and debugging Canton transactions.
 A developer should be able to start from an already committed update id, run a single CLI command, and get a readable transaction trace.
 From there, the tool adds interactive inspection and source-aware debugging workflows. To make that reliable, we also propose compiler-generated debug metadata so transaction traces and debugger steps can link back to Daml source.
+
 ---
+
 ## Specification
+
 ### 1. Objective
 Build the core tooling needed for source-aware Canton transaction debugging.
 - Add `dpm trace <update-id>` so developers can inspect already committed updates from the CLI.
@@ -112,14 +119,19 @@ The design follows Canton architecture:
 - It uses DPM as the developer entry point, which keeps the UX close to existing Canton developer workflows.
 - Compiler-generated debug information is opt-in. Existing Daml projects and DARs continue to work unchanged, and debugging tools use the metadata only when it is available.
 The proposal aligns directly with Daml Language & Developer Tooling, Canton APIs, and DAR Package Management priorities.
+
 ### 5. Backward Compatibility
+
 The proposed solution is completely “pluggable” into the existing ecosystem. The DPM plugin is additive and does not change existing Daml applications, Canton nodes, Ledger API semantics, or package vetting.
 The compiler debug-info flag is opt-in. DARs built without debug information continue to work exactly as they do today. Tools should degrade gracefully: with no debug info, they still show decoded package data and transaction structure; with debug info, they add source links and richer stepping.
+
 ---
+
 ## Proof of Concept Implementation
 As part of this proposal work, Walnut built a proof of concept to validate the core technical assumptions before asking for funding.
 - `dpm trace` proof of concept: [https://github.com/walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace)
 - Initial `damlc --debug-info` support branch: [https://github.com/walnuthq/daml/tree/feature/debug-info](https://github.com/walnuthq/daml/tree/feature/debug-info)
+
 ---
 ## Milestones and Deliverables
 ### Milestone 1: Transaction Trace CLI
@@ -280,7 +292,7 @@ The right first step is to build the debugging toolchain in layers:
 Walnut is well suited for this work. Our team has four years of experience building blockchain debugging and observability tooling. We partner with leading ecosystems:
 - Starkware / Starknet. We are building [Walnut Starknet Debugger](https://walnut.dev/), aka Tenderly for Starknet. Our work is end-to-end and involves debug info generation, tracing, transaction simulation, contract verificaiton, network forking and infra for hosting the debugger web app. 3-year ongoing partnership.
 - Ethereum Foundation / Argot: [Debug info generation in the official Solidity compiler, ](https://github.com/argotorg/solidity)[`solc`](https://github.com/argotorg/solidity). We own debug info generation in solc - the official Solidity compiler. 1-year partnership, to be extended.
-- Arbitrum/Offchain Labs:[StylusDB](https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/cargo-stylus/docs/StylusDebugger.md), an official debugger for Stylus (Rust) and debugging Solidity \<\> Rust interoperability transactions.
+- Arbitrum/Offchain Labs: [StylusDB](https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/cargo-stylus/docs/StylusDebugger.md), an official debugger for Stylus (Rust) and debugging Solidity \<\> Rust interoperability transactions.
 ---
 ## References
 - JSON Ledger API OpenAPI: [https://docs.digitalasset.com/build/3.4/reference/json-api/openapi.html](https://docs.digitalasset.com/build/3.4/reference/json-api/openapi.html)
