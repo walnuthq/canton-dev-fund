@@ -21,7 +21,7 @@
 - [Milestones and Deliverables](#milestones-and-deliverables)
   - [Milestone 1: Transaction Trace CLI and Artifact](#milestone-1-transaction-trace-cli-and-artifact)
   - [Milestone 2: Interactive Transaction Visualizer](#milestone-2-interactive-transaction-visualizer)
-  - [Milestone 3: Prepare and Compare Workflows](#milestone-3-prepare-and-compare-workflows)
+  - [Milestone 3: Prepare, Compare, and Diff Workflows](#milestone-3-prepare-compare-and-diff-workflows)
   - [Milestone 4: Adoption and Ecosystem Validation](#milestone-4-adoption-and-ecosystem-validation)
 - [Acceptance Criteria](#acceptance-criteria)
 - [Potential Follow-Ons](#potential-follow-ons)
@@ -278,7 +278,7 @@ The proof of concept fetches committed updates from an authorized participant, r
 - The state diff view clearly shows created and archived contracts where present.
 - Documentation clearly states that the visualizer shows a participant-visible projection, not a global transaction record.
 
-### Milestone 3: Prepare and Compare Workflows
+### Milestone 3: Prepare, Compare, and Diff Workflows
 
 **Estimated Delivery:** 5 weeks after Milestone 2 acceptance<br>
 **Estimated Effort:** 10 engineer-weeks<br>
@@ -384,7 +384,7 @@ The funding is split so that roughly half is tied to delivery and roughly half i
 
 - Milestone 1, Transaction Trace CLI and Artifact: 320,000 CC upon committee acceptance
 - Milestone 2, Interactive Transaction Visualizer: 320,000 CC upon committee acceptance
-- Milestone 3, Prepare and Compare Workflows: 310,000 CC upon committee acceptance
+- Milestone 3, Prepare, Compare, and Diff Workflows: 310,000 CC upon committee acceptance
 - Milestone 4, Adoption and Ecosystem Validation: 950,000 CC upon committee acceptance and adoption criteria
 
 ---
