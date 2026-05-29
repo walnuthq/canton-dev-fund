@@ -35,11 +35,11 @@
 
 ## Abstract
 
-We propose to build `dpm trace`, an open-source DPM plugin for visualizing and comparing Canton transactions, prepared transactions, and completion outcomes.
+We propose to build dpm trace, an open-source DPM plugin for visualizing successful and prepared Canton transactions, and understanding why some submissions failed.
 
-A developer should be able to start from an already committed update id, run a single CLI command, and get a readable participant-visible transaction trace.
+A developer should be able to run a single CLI command to inspect a successful transaction, a prepared transaction, or a failed submission.
 
-On top of that trace, `dpm trace` will add an interactive visualizer and comparison workflows for prepared transactions, successful updates, and failed completions.
+The tool will show readable transaction views, provide an interactive visualizer, and help developers compare what was prepared with what actually succeeded or failed.
 
 ---
 
@@ -49,9 +49,9 @@ On top of that trace, `dpm trace` will add an interactive visualizer and compari
 
 Build the core tooling needed for Canton transaction visualization and comparison.
 
-- Add `dpm trace <update-id>` so developers can inspect already committed updates from the CLI.
-- Add an interactive transaction visualizer so developers can navigate moderate transaction trees.
-- Add prepare and compare workflows so developers can compare prepared transaction outcomes with actual committed or failed outcomes.
+- Add `dpm trace` commands so developers can inspect successful transactions, prepared transactions, and failed submissions from the CLI.
+- Add an interactive transaction visualizer so developers can navigate transaction trees.
+- Add compare (diff) workflows so developers can compare prepared transaction outcomes with successful transactions or failed submissions.
 
 We are open to adjusting the details with Canton developers, Daml/Canton maintainers, and the Tech & Ops Committee.
 
@@ -68,13 +68,14 @@ We analysed the current Canton stack and found useful primitives that already ex
 
 The gaps are:
 
-- There is no single DPM command for inspecting the trace of an already committed update.
+- There is no single DPM command for inspecting the trace of a successful transaction.
 - There is no interactive visualization workflow for navigating a transaction tree, state changes, parties, arguments, payloads, and return values.
-- There is no developer-friendly diff between a prepared transaction and an actual successful update.
-- There is no developer-friendly diff between a prepared transaction and a failed completion, with completion status and error context.
-- There is no simple way to compare two updates that represent the same business operation and understand why they differ.
+- There is no developer-friendly diff between a prepared transaction and an actual successful transaction.
+- There is no developer-friendly diff between a prepared transaction and a failed submission, with error context that helps identify the root cause.
+- There is no simple way to compare two updates that represent the same business operation.
+- Daml/Canton tooling lacks rich, portable and versioned debug-info for reliable source-level debugging, including expression spans, execution step IDs, and consistent variable/value visibility.
 
-This proposal focuses on those gaps.
+This proposal focuses on those gaps, except for debug info generation which will be covered as a subsequent proposal.
 
 ### 3. Implementation Mechanics
 
@@ -89,9 +90,16 @@ dpm trace <update-id> \
   --submitter <participant-url> \
   --read-as <party> \
   --access-token-file <token-file>
+
+dpm trace --command-id <command-id> \
+  --submitter <participant-url> \
+  --act-as <party> \
+  --access-token-file <token-file>
 ```
 
-The command connects to an authorized participant endpoint, fetches the participant-visible update, decodes it, and renders a readable trace tree with templates, choices, arguments, payloads, return values, parties, and contract ids where visible.
+For successful transactions, the command connects to an authorized participant endpoint, fetches the participant-visible update, decodes it, and renders a readable trace tree with templates, choices, arguments, payloads, return values, parties, and contract ids where visible.
+
+For failed submissions, there may be no committed `update-id`. In that case, `dpm trace --command-id` reads the authorized completion stream and renders the completion status and error details instead of a transaction tree.
 
 The `--submitter` value is the Ledger API or JSON Ledger API endpoint used for the lookup. The authorization model is explicit: the user supplies that endpoint, an access token, and a party context such as `--read-as` or `--act-as`, depending on the operation.
 
@@ -99,25 +107,29 @@ It uses existing APIs:
 
 - `UpdateService.GetUpdateById`
 - JSON Ledger API `/v2/updates/update-by-id`
+- `CommandCompletionService.CompletionStream` for command completion data
+- JSON Ledger API completions endpoint where available
 - `PackageService.GetPackage` where package metadata is available
 - optional event/query APIs for related visible contract payloads
 
+Prepared transaction creation and comparison workflows are described in the "Prepare and Compare" section below.
+
 #### Interactive Transaction Visualizer
 
-Build an interactive visualizer for transactions completions. The CLI UX is:
+Build an interactive visualizer for successful transactions. The CLI UX is:
 
 ```bash
 dpm trace <update-id> --visualize
 ```
 
-This opens an interactive visualizer for completed transaction. The update already happened, so the tool is not pausing live execution. It is helping the developer understand what happened.
+This opens an interactive visualizer for a successful transaction. The transaction already happened, so the tool is not pausing live execution. The tool helps developers understand details about transaction execution.
 
-The visualizer should make a moderate transaction tree easy to navigate:
+The visualizer should make a transaction tree easy to navigate:
 
 - Expandable event tree for create, exercise, archive, and reassignment events.
 - Event details panel with arguments, payloads, return values, actors, witnesses, signatories, observers, and contract ids.
 - State diff panel for contracts created, archived, reassigned, or otherwise affected.
-- Search and filters by template, choice, party, contract id, event type, and package id.
+- Search and filters by template, choice, party, contract id, event type, and package id for easier navigation of the trace tree.
 - Source hints where existing package/project metadata can provide them.
 - Symbol/source hints should reuse existing LF spans and project metadata where available, including information obtainable from `damlc inspect`, package manifests, and `daml.yaml`.
 - Participant/projection labels so the user knows which participant and party rights produced the view.
@@ -135,32 +147,46 @@ dpm trace prepare \
   --export prepared.json
 ```
 
-This workflow runs Canton's non-committing prepare flow. The result can be visualized and compared with a committed update or failed completion, but it is not itself a committed transaction.
+`commands.json` is a user-provided command payload in the shape expected by Canton's prepare API.
+
+This workflow runs Canton's non-committing prepare flow. It generates a trace tree similar to successful transactions. The result can be visualized and compared with a successful transaction or failed submission.
+
+For failed submissions, there may be no committed `update-id`, so the CLI uses the command completion:
+
+```bash
+dpm trace --command-id <command-id> \
+  --submitter <participant-url> \
+  --act-as <party> \
+  --access-token-file <token-file>
+```
+
+`command-id` is the existing Ledger API command identifier used to correlate a submitted command with its completion result.
 
 Add compare commands:
 
 ```bash
 dpm trace compare --prepared prepared.json --update <update-id>
-dpm trace compare --prepared prepared.json --completion <command-id>
+dpm trace compare --prepared prepared.json --command-id <command-id>
 dpm trace compare <update-id-a> <update-id-b>
 ```
 
+`update-id` identifies a successful transaction/update with a committed event tree. `command-id` identifies a submitted command; for failed submissions, the tool uses completion data because there may be no committed `update-id`.
+
 The comparison workflow should support:
 
-- Prepared transaction vs actual successful update.
+- Prepared transaction vs actual successful transaction.
 - Prepared transaction vs failed completion, including completion status and error details.
-- Two successful updates that represent the same business operation.
+- Two successful transactions that represent the same business operation.
 - State diff comparison for creates, archives, reassignments, payload changes, parties, and return values.
 
 It uses existing APIs:
 
 - `InteractiveSubmissionService.PrepareSubmission`
 - JSON Ledger API interactive submission equivalent where available
-- `CommandCompletionService.CompletionStream` for successful and failed completions
-- `UpdateService.GetUpdateById` for successful committed updates
+- `UpdateService.GetUpdateById` for successful transactions
 - `PackageService.GetPackage` for value/package decoding where available
 
-Failed submissions may not have an `update_id`. In that case the tool works from the completion, rather than pretending there is a committed transaction to fetch. For failed submissions, `dpm trace` reads the authorized completion stream for the submitting context.
+Failed submissions may not have an update_id. In that case the tool works from the completion. For failed submissions, dpm trace reads the authorized completion stream for the submitting context.
 
 ### 4. Architectural Alignment
 
@@ -172,7 +198,7 @@ The design follows Canton architecture:
 - It supports bearer-token based authorization and explicit party context.
 - It complements package upload and package vetting instead of replacing them.
 - It does not require Canton protocol changes, Canton node changes, Daml compiler changes, or Daml-LF interpreter changes.
-- It handles failed submissions through completion data, without inventing a committed update that does not exist.
+- It handles failed submissions through completion data, without inventing a successful transaction that does not exist.
 
 The proposal aligns directly with Daml Language & Developer Tooling, Canton APIs, and DAR Package Management priorities.
 
@@ -187,8 +213,9 @@ The proposed solution is additive. It does not change existing Daml applications
 As part of this proposal work, Walnut built a proof of concept to validate the core technical assumptions before asking for funding.
 
 - `dpm trace` proof of concept: [https://github.com/walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace)
+- Initial `damlc --debug-info` support branch: [https://github.com/walnuthq/daml/tree/feature/debug-info](https://github.com/walnuthq/daml/tree/feature/debug-info)
 
-The proof of concept fetches committed updates from an authorized participant, renders a readable trace tree, and demonstrates the shape of an interactive CLI inspection flow.
+The proof of concept fetches successful transactions from an authorized participant, renders a readable trace tree, and demonstrates the shape of an interactive CLI inspection flow.
 
 ---
 
@@ -198,14 +225,14 @@ The proof of concept fetches committed updates from an authorized participant, r
 
 **Estimated Delivery:** 4 weeks from start<br>
 **Estimated Effort:** 8 engineer-weeks<br>
-**Focus:** One useful command to inspect committed updates.
+**Focus:** One useful command to inspect successful transactions.
 
 **Deliverables / Value Metrics:**
 
 - `dpm trace <update-id>` plugin command.
 - Support for local and remote participant JSON Ledger API endpoints.
 - Support for `--submitter`, `--read-as`, and bearer-token based access.
-- Human-readable transaction tree for already committed updates.
+- Human-readable transaction tree for successful transactions.
 - Create, exercise, archive, and reassignment event rendering.
 - Contract ids, parties, witnesses, signatories, observers, choice arguments, return values, and payloads where visible.
 - Participant-visible projection labeling.
@@ -213,7 +240,7 @@ The proof of concept fetches committed updates from an authorized participant, r
 
 **Acceptance Criteria:**
 
-- A developer can run `dpm trace <update-id> --submitter <url> --read-as <party>` against a local Canton participant and inspect a committed update.
+- A developer can run `dpm trace <update-id> --submitter <url> --read-as <party>` against a local Canton participant and inspect a successful transaction.
 - The same command shape works against an authorized remote participant endpoint.
 - The CLI renders a readable transaction tree for create, exercise, archive, and reassignment events where present.
 - Output labels the result as a participant-visible projection and does not imply access to non-visible private data.
@@ -227,7 +254,7 @@ The proof of concept fetches committed updates from an authorized participant, r
 
 **Deliverables / Value Metrics:**
 
-- `dpm trace <update-id> --visualize` for committed-update visualization.
+- `dpm trace <update-id> --visualize` for successful transaction visualization.
 - Expandable transaction tree.
 - Event details panel.
 - State diff panel.
@@ -238,7 +265,7 @@ The proof of concept fetches committed updates from an authorized participant, r
 
 **Acceptance Criteria:**
 
-- A developer can open an interactive visualizer from a committed update without manually reading JSON.
+- A developer can open an interactive visualizer from a successful transaction without manually reading JSON.
 - The visualizer can navigate a representative transaction tree with nested exercise/create events.
 - Search and filters work for at least template, choice, party, and contract id.
 - The state diff view clearly shows created and archived contracts where present.
@@ -254,22 +281,24 @@ The proof of concept fetches committed updates from an authorized participant, r
 
 - `dpm trace prepare --commands commands.json` for preparing and visualizing prepared transaction data before submission.
 - Prepared transaction results labeled as prepared, not committed.
+- `dpm trace --command-id <command-id>` for inspecting failed submissions through completion data.
 - `dpm trace compare --prepared prepared.json --update <update-id>`.
-- `dpm trace compare --prepared prepared.json --completion <command-id>` using the authorized completions endpoint.
+- `dpm trace compare --prepared prepared.json --command-id <command-id>` using the authorized completions endpoint for failed submissions.
 - `dpm trace compare --prepared prepared.json --completion-file completion.json` for captured completion/error files.
 - `dpm trace compare <update-id-a> <update-id-b>`.
 - Diff view for event tree changes, state diff changes, parties, arguments, payloads, return values, and completion status.
-- Completion integration for failed completion outcomes where available.
+- Support for inspecting failed submissions through completion data where available.
 - Failed-completion comparison based on completion status, error details, submission id, trace context, offset, parties, and synchronizer time.
 - Documentation explaining what can and cannot be compared.
 
 **Acceptance Criteria:**
 
 - A developer can run the prepare flow without committing and inspect the prepared transaction result.
-- A developer can compare a prepared transaction result with a successful committed update.
+- A developer can run `dpm trace --command-id <command-id>` and inspect completion status and error details for a failed submission.
+- A developer can compare a prepared transaction result with a successful transaction.
 - A developer can compare a prepared transaction result with a failed completion where the completion is available.
-- A developer can compare two successful updates and see event/state differences.
-- Failed-completion views show completion status and error details without claiming that a failed submission has a committed update id.
+- A developer can compare two successful transactions and see event/state differences.
+- Failed-completion views show completion status and error details without claiming that a failed submission has an update id.
 - Failed-completion comparison works from a documented completion/error file and does not require log access.
 
 ### Milestone 4: Adoption and Ecosystem Validation
@@ -304,10 +333,10 @@ The Tech & Ops Committee will evaluate completion based on:
 
 - The delivered tools work on the current stable DPM/Daml SDK version at the time of development.
 - The CLI commands can be installed and run in a clean environment.
-- Trace and visualizer output is useful for committed updates.
+- Trace and visualizer output is useful for successful transactions.
 - Prepare and compare workflows are useful for understanding intended vs actual outcomes.
 - Participant-scoped privacy is correctly represented in command syntax, output, and documentation.
-- Failed completion handling uses completion data without implying a committed update exists.
+- Failed completion handling uses completion data without implying a successful transaction exists.
 - All software is released as open source under Apache-2.0 unless otherwise agreed.
 - Documentation includes local development and authorized remote participant workflows.
 
@@ -371,7 +400,7 @@ We are not starting with a hosted UI as the first deliverable.
 
 The right first step is to build the transaction inspection toolchain in layers:
 
-1. A trace command that makes committed updates developer-readable.
+1. A trace command that makes successful transactions developer-readable.
 2. An interactive visualizer for navigating transaction trees and state changes.
 3. Prepare and compare workflows for intended vs actual outcomes.
 4. Adoption validation with independent Canton organizations.
