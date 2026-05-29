@@ -306,6 +306,7 @@ The proof of concept fetches successful transactions from an authorized particip
 **Estimated Delivery:** 4 weeks after Milestone 3 acceptance<br>
 **Estimated Effort:** 4 engineer-weeks plus support during the adoption window<br>
 **Focus:** Prove that the tooling is useful to Canton developers outside Walnut.
+**Note:** We are already in talks with three organizations building on Canton who expressed interest in trying the tool or sharing feedback (including a team from Goldman Sachs).
 
 **Deliverables / Value Metrics:**
 
