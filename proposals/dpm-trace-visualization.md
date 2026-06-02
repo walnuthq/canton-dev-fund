@@ -21,7 +21,8 @@
 - [Milestones and Deliverables](#milestones-and-deliverables)
   - [Milestone 1: Transaction Trace CLI](#milestone-1-transaction-trace-cli)
   - [Milestone 2: Interactive Transaction Visualizer](#milestone-2-interactive-transaction-visualizer)
-  - [Milestone 3: Prepare, Compare, and Diff Workflows](#milestone-3-prepare-compare-and-diff-workflows)
+  - [Milestone 3: Prepared Transactions, Failed Submissions, and Diff Workflows](#milestone-3-prepa
+red-transactions-failed-submissions-and-diff-workflows)
   - [Milestone 4: Adoption and Ecosystem Validation](#milestone-4-adoption-and-ecosystem-validation)
 - [Acceptance Criteria](#acceptance-criteria)
 - [Potential Follow-Ons](#potential-follow-ons)
@@ -94,14 +95,15 @@ dpm trace <update-id> \
 dpm trace --command-id <command-id> \
   --submitter <participant-url> \
   --act-as <party> \
-  --access-token-file <token-file>
+  --access-token-file <token-file> \
+  --log-file <validator-or-participant-log>
 ```
 
 For successful transactions, the command connects to an authorized participant endpoint, fetches the participant-visible update, decodes it, and renders a readable trace tree with templates, choices, arguments, payloads, return values, parties, and contract ids where visible.
 
-For failed submissions, there may be no committed `update-id`. In that case, `dpm trace --command-id` reads the authorized completion stream and renders the completion status and error details instead of a transaction tree.
+For failed submissions, there may be no committed `update-id`. In that case, `dpm trace --command-id` reads the authorized completion stream and renders the completion status and error details instead of a transaction tree. In LocalNet and DevNet workflows, `--log-file` can attach validator or participant logs from the node where the dApp is running. For MainNet and TestNet, log attachment depends on what the validator operator is authorized and willing to provide.
 
-The `--submitter` value is the Ledger API or JSON Ledger API endpoint used for the lookup. The authorization model is explicit: the user supplies that endpoint, an access token, and a party context such as `--read-as` or `--act-as`, depending on the operation.
+The `--submitter` value is the Ledger API or JSON Ledger API endpoint used for the lookup. The authorization model is explicit: the user supplies that endpoint, an access token, and a party context such as `--read-as` or `--act-as`, depending on the operation. The access token can be passed with `--access-token-file`, directly with `--token`, or through an environment variable such as `DPM_TRACE_TOKEN`.
 
 It uses existing APIs:
 
@@ -128,6 +130,7 @@ The visualizer should make a transaction tree easy to navigate:
 
 - Expandable event tree for create, exercise, archive, and reassignment events.
 - Event details panel with arguments, payloads, return values, actors, witnesses, signatories, observers, and contract ids.
+- Large payload handling for templates with many fields: collapsed sections by default, field search, and paged/truncated rendering with an explicit continue/show-more action. It is very similar UX used by debuggers like LLDB and GNU GDB when they should show many information on the screen that does not fit the window (for example large backtraces).
 - State diff panel for contracts created, archived, reassigned, or otherwise affected.
 - Search and filters by template, choice, party, contract id, event type, and package id for easier navigation of the trace tree.
 - Source hints where existing package/project metadata can provide them.
@@ -179,6 +182,16 @@ The comparison workflow should support:
 - Two successful transactions that represent the same business operation.
 - State diff comparison for creates, archives, reassignments, payload changes, parties, and return values.
 
+The comparison view should include:
+
+- Clear labels for each side of the comparison, for example prepared, successful transaction, failed completion, baseline, and candidate.
+- Operation summary showing whether the compared transactions have the same root operation shape.
+- Event tree diff showing added, removed, or changed create/exercise/archive/reassignment events.
+- Field/value diff for arguments, payloads, return values, parties, witnesses, signatories, observers, and contract ids where visible.
+- Completion/error panel for failed submissions, including status, error message, command id, submission id, offset, trace context, and synchronizer time where available.
+- Optional log match panel when validator or participant logs are attached.
+- Participant/projection labels so users know which endpoint and party context produced each side.
+
 It uses existing APIs:
 
 - `InteractiveSubmissionService.PrepareSubmission`
@@ -188,6 +201,8 @@ It uses existing APIs:
 
 Failed submissions may not have an update_id. In that case the tool works from the completion. For failed submissions, dpm trace reads the authorized completion stream for the submitting context.
 
+For LocalNet and DevNet workflows, the tool can also accept validator or participant logs from the node where the dApp is running. These logs are operator-provided diagnostics, not Ledger API transaction data. `dpm trace` should correlate them with completion data where possible, using identifiers such as command id, submission id, update id, trace context, timestamps, and error messages. For MainNet or TestNet validators, log access may depend on operational security policies of the validator operator.
+
 ### 4. Architectural Alignment
 
 The design follows Canton architecture:
@@ -195,7 +210,7 @@ The design follows Canton architecture:
 - It works through authorized participant endpoints and respects participant-scoped visibility.
 - It uses DPM as the developer entry point, which keeps the UX close to existing Canton developer workflows.
 - It uses existing Ledger API and JSON Ledger API primitives.
-- It supports bearer-token based authorization and explicit party context.
+- It supports bearer-token based authorization through an access-token file, direct token argument, or environment variable, plus explicit party context.
 - It complements package upload and package vetting instead of replacing them.
 - It does not require Canton protocol changes, Canton node changes, Daml compiler changes, or Daml-LF interpreter changes.
 - It handles failed submissions through completion data, without inventing a successful transaction that does not exist.
@@ -221,6 +236,8 @@ The proof of concept fetches successful transactions from an authorized particip
 
 ## Milestones and Deliverables
 
+Milestones 1 and 2 first make successful transactions readable and navigable. Milestone 3 extends the same tooling to prepared transactions, failed submissions, and diff workflows.
+
 ### Milestone 1: Transaction Trace CLI
 
 **Estimated Delivery:** 4 weeks from start<br>
@@ -231,7 +248,7 @@ The proof of concept fetches successful transactions from an authorized particip
 
 - `dpm trace <update-id>` plugin command.
 - Support for local and remote participant JSON Ledger API endpoints.
-- Support for `--submitter`, `--read-as`, and bearer-token based access.
+- Support for `--submitter`, `--read-as`, and bearer-token based access through token files, direct token arguments, or environment variables.
 - Human-readable transaction tree for successful transactions.
 - Create, exercise, archive, and reassignment event rendering.
 - Contract ids, parties, witnesses, signatories, observers, choice arguments, return values, and payloads where visible.
@@ -257,6 +274,7 @@ The proof of concept fetches successful transactions from an authorized particip
 - `dpm trace <update-id> --visualize` for successful transaction visualization.
 - Expandable transaction tree.
 - Event details panel.
+- Large payload handling for contracts and templates with many fields.
 - State diff panel.
 - Search and filters by template, choice, party, contract id, event type, and package id.
 - Participant/projection labels shown in the visualizer.
@@ -268,10 +286,11 @@ The proof of concept fetches successful transactions from an authorized particip
 - A developer can open an interactive visualizer from a successful transaction without manually reading JSON.
 - The visualizer can navigate a representative transaction tree with nested exercise/create events.
 - Search and filters work for at least template, choice, party, and contract id.
+- Large payloads remain navigable without flooding the screen, using collapsed sections, field search, and explicit show-more behavior.
 - The state diff view clearly shows created and archived contracts where present.
 - Documentation clearly states that the visualizer shows a participant-visible projection, not a global transaction record.
 
-### Milestone 3: Prepare, Compare, and Diff Workflows
+### Milestone 3: Prepared Transactions, Failed Submissions, and Diff Workflows
 
 **Estimated Delivery:** 5 weeks after Milestone 2 acceptance<br>
 **Estimated Effort:** 10 engineer-weeks<br>
@@ -289,6 +308,7 @@ The proof of concept fetches successful transactions from an authorized particip
 - Diff view for event tree changes, state diff changes, parties, arguments, payloads, return values, and completion status.
 - Support for inspecting failed submissions through completion data where available.
 - Failed-completion comparison based on completion status, error details, submission id, trace context, offset, parties, and synchronizer time.
+- Optional operator-provided validator/participant log attachment for LocalNet and DevNet diagnostics.
 - Documentation explaining what can and cannot be compared.
 
 **Acceptance Criteria:**
@@ -380,7 +400,7 @@ The funding is split so that roughly half is tied to delivery and roughly half i
 
 - Milestone 1, Transaction Trace CLI: 320,000 CC upon committee acceptance
 - Milestone 2, Interactive Transaction Visualizer: 320,000 CC upon committee acceptance
-- Milestone 3, Prepare, Compare, and Diff Workflows: 310,000 CC upon committee acceptance
+- Milestone 3, Prepared Transactions, Failed Submissions, and Diff Workflows: 310,000 CC upon committee acceptance
 - Milestone 4, Adoption and Ecosystem Validation: 950,000 CC upon committee acceptance and adoption criteria
 
 ---
