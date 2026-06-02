@@ -115,27 +115,6 @@ It uses existing APIs:
 
 Prepared transaction creation and comparison workflows are described in the "Prepare and Compare" section below.
 
-#### Interactive Transaction Visualizer
-
-Build an interactive visualizer for successful transactions. The CLI UX is:
-
-```bash
-dpm trace <update-id> --visualize
-```
-
-This opens an interactive visualizer for a successful transaction. The transaction already happened, so the tool is not pausing live execution. The tool helps developers understand details about transaction execution.
-
-The visualizer should make a transaction tree easy to navigate:
-
-- Expandable event tree for create, exercise, archive, and reassignment events.
-- Event details panel with arguments, payloads, return values, actors, witnesses, signatories, observers, and contract ids.
-- Large payload handling for templates with many fields: collapsed sections by default, field search, and paged/truncated rendering with an explicit continue/show-more action. It is very similar UX used by debuggers like LLDB and GNU GDB when they should show many information on the screen that does not fit the window (for example large backtraces).
-- State diff panel for contracts created, archived, reassigned, or otherwise affected.
-- Search and filters by template, choice, party, contract id, event type, and package id for easier navigation of the trace tree.
-- Source hints where existing package/project metadata can provide them.
-- Symbol/source hints should reuse existing LF spans and project metadata where available, including information obtainable from `damlc inspect`, package manifests, and `daml.yaml`.
-- Participant/projection labels so the user knows which participant and party rights produced the view.
-
 #### Prepare and Compare
 
 Add a workflow for visualizing a prepared transaction before submission:
@@ -201,6 +180,31 @@ It uses existing APIs:
 Failed submissions may not have an update_id. In that case the tool works from the completion. For failed submissions, dpm trace reads the authorized completion stream for the submitting context.
 
 For LocalNet and DevNet workflows, the tool can also accept validator or participant logs from the node where the dApp is running. These logs are operator-provided diagnostics, not Ledger API transaction data. `dpm trace` should correlate them with completion data where possible, using identifiers such as command id, submission id, update id, trace context, timestamps, and error messages. For MainNet or TestNet validators, log access may depend on operational security policies of the validator operator.
+
+#### Interactive Transaction Visualizer
+
+Build an interactive visualizer for the three main inputs: successful transactions, prepared transactions, and failed submissions.
+
+```bash
+dpm trace <update-id> --visualize
+dpm trace prepare --commands commands.json --visualize
+dpm trace --command-id <command-id> --visualize
+```
+
+For successful transactions, the visualizer opens the committed transaction tree. For prepared transactions, it opens the non-committed prepare result. For failed submissions, there may be no transaction tree, so the visualizer opens the completion/error view and any attached log matches.
+
+The visualizer should make transaction and diagnostic data easy to navigate:
+
+- Expandable event tree for create, exercise, archive, and reassignment events where a transaction tree exists.
+- Event details panel with arguments, payloads, return values, actors, witnesses, signatories, observers, and contract ids.
+- Completion/error panel for failed submissions.
+- Optional log match panel when validator or participant logs are attached.
+- Large payload handling for templates with many fields: collapsed sections by default, field search, and paged/truncated rendering with an explicit continue/show-more action. It is very similar UX used by debuggers like LLDB and GNU GDB when they should show many information on the screen that does not fit the window (for example large backtraces).
+- State diff panel for contracts created, archived, reassigned, or otherwise affected.
+- Search and filters by template, choice, party, contract id, event type, package id, command id, and submission id.
+- Source hints where existing package/project metadata can provide them.
+- Symbol/source hints should reuse existing LF spans and project metadata where available, including information obtainable from `damlc inspect`, package manifests, and `daml.yaml`.
+- Participant/projection labels so the user knows which participant and party rights produced the view.
 
 ### 4. Architectural Alignment
 
@@ -300,6 +304,7 @@ Milestones 1 and 2 first make successful transactions readable and navigable. Mi
 - `dpm trace prepare --commands commands.json` for preparing and visualizing prepared transaction data before submission.
 - Prepared transaction results labeled as prepared, not committed.
 - `dpm trace --command-id <command-id>` for inspecting failed submissions through completion data.
+- Visualizer support for prepared transactions and failed completion/error views.
 - `dpm trace compare --prepared prepared.json --update <update-id>`.
 - `dpm trace compare --prepared prepared.json --command-id <command-id>` using the authorized completions endpoint for failed submissions.
 - `dpm trace compare --prepared prepared.json --completion-file completion.json` for captured completion/error files.
