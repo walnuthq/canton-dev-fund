@@ -21,8 +21,7 @@
 - [Milestones and Deliverables](#milestones-and-deliverables)
   - [Milestone 1: Transaction Trace CLI](#milestone-1-transaction-trace-cli)
   - [Milestone 2: Interactive Transaction Visualizer](#milestone-2-interactive-transaction-visualizer)
-  - [Milestone 3: Prepared Transactions, Failed Submissions, and Diff Workflows](#milestone-3-prepa
-red-transactions-failed-submissions-and-diff-workflows)
+  - [Milestone 3: Prepared Transactions, Failed Submissions, and Diff Workflows](#milestone-3-prepared-transactions-failed-submissions-and-diff-workflows)
   - [Milestone 4: Adoption and Ecosystem Validation](#milestone-4-adoption-and-ecosystem-validation)
 - [Acceptance Criteria](#acceptance-criteria)
 - [Potential Follow-Ons](#potential-follow-ons)
