@@ -1,10 +1,12 @@
 # Development Fund Proposal Draft: Versioned Debug Info Metadata for Daml
 
-**Author:** Walnut
-**Status:** Draft / follow-on proposal
-**Created:** 2026-07-01
-**Label:** daml-tooling
-**Champion:** Need Champion
+| Field | Value |
+| --- | --- |
+| Author | Walnut |
+| Status | Draft / follow-on proposal |
+| Created | 2026-07-01 |
+| Label | daml-tooling |
+| Champion | Need Champion |
 
 ---
 
