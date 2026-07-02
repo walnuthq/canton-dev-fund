@@ -573,9 +573,35 @@ debugging formats.
 
 ---
 
+## Reference Implementation Status
+
+A working reference implementation of the concrete `daml-debug-info/v1`
+schema now exists and is documented in
+[`daml-debug-info-v1-spec.md`](./daml-debug-info-v1-spec.md):
+
+- `damlc build --experimental-debug-info` emits the metadata from the
+  compiled Daml-LF package (sidecar JSON plus
+  `META-INF/daml-debug-info/<package-id>.json` DAR member), with
+  package-relative source paths, SHA-256 source hashes, symbols, spans,
+  Daml-LF references, value slots with availability labels, and
+  deterministic evaluation steps.
+- Two compiler fixes make choice-level debugging possible: choice
+  declaration locations are now populated in the Daml-LF AST, and source
+  locations are no longer stripped from choice bodies during GHC→LF
+  conversion.
+- `daml script --debug-trace-file <file>` (Daml Script runner extension)
+  emits the JSONL runtime debug trace consumed by `dpm debug`. The
+  interpreter-side per-expression hook (`MachineLogger.onLocation` in
+  Speedy, Canton repository) is specified as follow-up work.
+- `dpm trace` consumes the metadata for source links; `dpm debug` provides
+  source-level stepping over runtime debug traces.
+
+---
+
 ## References
 
 - Submitted consumer proposal: `DPM Trace Transaction Visualization`
+- Concrete v1 specification: [`daml-debug-info-v1-spec.md`](./daml-debug-info-v1-spec.md)
 - `dpm trace` proof of concept: <https://github.com/walnuthq/dpm-trace>
 - Initial Walnut Daml debug-info branch:
   <https://github.com/walnuthq/daml/tree/feature/debug-info>
