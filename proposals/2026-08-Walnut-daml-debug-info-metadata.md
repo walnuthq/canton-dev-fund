@@ -10,17 +10,17 @@
 
 ## Abstract
 
-Walnut proposes to define, prototype, upstream, and validate a versioned debug
-metadata format for Daml packages.
+Walnut proposes a versioned debug metadata format for Daml packages, together
+with the compiler support to emit it and the tooling to consume it.
 
-The goal is to give Daml/Canton developer tools a stable, portable way to map a
-compiled package back to source files, source spans, templates, choices,
-interfaces, expressions, failure sites, and value locations. The first
-consumers are trace, visualization, test-reporting, coverage, and source
-diagnostics tools, starting with the approved
+The goal is to give Daml/Canton developer tools a stable, portable way to map
+a compiled package back to its source: which files produced it, which spans
+correspond to which definitions, where it can fail, and which values a tool
+may legitimately show. The first consumer is the approved
 [DPM Trace Transaction Visualization](./dpm-trace-visualization.md)
 proposal, which names this work as its planned "Compiler Source Metadata"
-follow-on.
+follow-on. Test, coverage, and explorer tools can build on the same
+contract.
 
 This is not a request to expose private participant data or to change Canton
 transaction visibility. The metadata describes code, not ledger state. Tools
@@ -37,8 +37,8 @@ document and is backed by a working reference implementation.
 
 ### 1. Objective
 
-Create a versioned Daml debug metadata standard, upstream the emission paths
-that produce it, and validate it end to end with independent consumers.
+Create a versioned Daml debug metadata standard, upstream its emission
+paths, and validate it with independent consumers.
 
 The first version targets Daml SDK 3.x packages (Daml-LF 2.1 and later) and
 answers these questions for any package:
@@ -141,12 +141,12 @@ The emission is strictly additive:
 - No participant node change.
 - No mandatory runtime overhead.
 
-The central producer invariant, stated normatively in Appendix A.2: enabling
-debug metadata emission MUST NOT change the compiled Daml-LF output. The
-package id of a package built with and without the emission flag MUST be
-identical, so metadata generated in a debug build applies to the exact
-artifact that is deployed. The upstream contribution includes a CI test that
-asserts this package-id equality.
+One rule matters more than the rest, and Appendix A.2 makes it binding:
+turning on metadata emission does not change the compiled Daml-LF output. A
+package built with the flag has the same package id as one built without it,
+so metadata from a debug build describes the exact artifact that gets
+deployed. The upstream contribution includes a CI test for this package-id
+equality.
 
 Emission modes:
 
@@ -191,13 +191,13 @@ proposal can add it without changing the trace contract.
 
 #### D. Reader, Validator, and Test Corpus
 
-Build a reference reader and validator package and CLI. It validates schema
-version and feature flags, verifies package id and source hashes, checks span
-bounds and internal reference consistency, checks that value-slot
-availability labels conform to the normative table in Appendix A.6, verifies
-that sidecar and DAR-member copies are byte-identical, produces a specific
-diagnostic for line-ending mismatches, and rejects non-portable absolute
-paths.
+Build a reference reader and validator package and CLI. It checks schema
+version and feature flags, package id, source hashes, span bounds, and
+internal reference consistency. It also enforces the rules that keep the
+metadata trustworthy in practice: availability labels must conform to the
+table in Appendix A.6, sidecar and DAR-member copies must be byte-identical,
+absolute paths are rejected, and a hash check that fails because of
+translated line endings gets its own diagnostic instead of a generic error.
 
 The test corpus includes representative Daml packages:
 
@@ -230,38 +230,36 @@ that the value is `interpreter-only`.
 
 ### 4. Architectural Alignment
 
-This proposal aligns with Canton architecture in these ways:
+The design follows Canton architecture:
 
 - It respects participant-scoped visibility. Debug metadata maps code to
-  source. It does not reveal ledger data outside the requesting party's
-  rights.
-- It is package-oriented, matching Daml-LF and DAR package distribution, and
-  it behaves correctly under smart contract upgrades: metadata is keyed by
-  package id, and consumers resolve it strictly by package id, never by
-  package name. Under package-name resolution a participant may execute a
-  different package version than the developer expects, which is exactly the
-  situation where precise per-package metadata matters most.
-- The metadata trust model is explicit. Debug metadata is advisory: nothing
-  cryptographically binds a sidecar or DAR member to a DALF, because
-  `META-INF` members are not part of the package id. For packages a developer
-  did not build, the only strong verification is to rebuild from source and
-  compare package ids. Consumers treat metadata as trusted only as much as
-  its distribution channel.
-- The ledger never transports debug metadata. Canton distributes DALFs, not
-  DAR members, so counterparties cannot receive a package's debug info
-  through the ledger. This is good for privacy, and it is why a future
-  source and metadata registry is the natural follow-on for third-party
-  packages.
-- It complements package upload and package vetting. Vetting says a
-  participant is willing to process a package. Debug metadata says which
-  source and spans correspond to a package.
-- It improves DPM and Daml developer workflows without changing Canton
-  consensus, synchronization, privacy, or transaction semantics.
-- It gives multiple tools a shared contract instead of locking the ecosystem
-  to one debugger or one vendor's trace format.
+  source and reveals no ledger data outside the requesting party's rights.
+- It is package-oriented, matching how Daml-LF and DARs are distributed.
+- It complements package upload and vetting. Vetting says a participant is
+  willing to process a package. Debug metadata says which source and spans
+  correspond to it.
+- It requires no changes to Canton consensus, synchronization, privacy, or
+  transaction semantics.
 
-The proposal directly supports the Development Fund's developer-experience
-and shared tooling priorities.
+Smart contract upgrades are handled by construction. Metadata is keyed by
+package id, and consumers resolve it strictly by package id, never by
+package name. Under package-name resolution a participant may execute a
+different package version than the developer expects, and that is when
+precise per-package metadata matters most.
+
+The trust model is modest on purpose. Nothing cryptographically binds a
+sidecar or DAR member to a DALF, since `META-INF` members are not part of
+the package id, so debug metadata is advisory: trusted as much as its
+distribution channel and no further. For packages a developer did not build,
+the strong check is to rebuild from source and compare package ids. The
+ledger itself never transports this metadata. Canton distributes DALFs, not
+DAR members, so counterparties cannot receive a package's debug info through
+the ledger. That is good for privacy, and it is why a source and metadata
+registry for third-party packages is the natural follow-on.
+
+The proposal supports the Development Fund's developer-experience and shared
+tooling priorities, and gives multiple tools one contract instead of locking
+the ecosystem to a single debugger or one vendor's trace format.
 
 ### 5. Backward Compatibility
 
@@ -302,10 +300,10 @@ Those are possible future proposals once the metadata contract is accepted.
 ## Milestones and Deliverables
 
 A working proof of concept already exists (see Reference Implementation
-Status below). The funded work is therefore not "make it work once": it is
-maintainer alignment, upstreaming, hardening, and independent validation.
-Milestone acceptance criteria are deliberately set beyond what the proof of
-concept already demonstrates.
+Status below). The milestones are set beyond it on purpose, so that no
+payment is tied to work the prototype already demonstrates. What the fund
+buys is maintainer alignment, upstreaming, hardening, and independent
+validation.
 
 ### Milestone 1: Maintainer-Aligned Schema and Upstream Groundwork
 
@@ -344,8 +342,8 @@ specification, and open the upstream conversation with running code.
 ### Milestone 2: Compiler and Runtime Emission Upstreaming
 
 **Estimated Delivery:** 6 weeks after Milestone 1 acceptance<br>
-**Focus:** Land upstream-quality emission of the metadata and the runtime
-debug trace.
+**Focus:** Get the metadata and runtime trace emission into the upstream
+toolchain.
 
 **Deliverables / Value Metrics:**
 
@@ -520,12 +518,12 @@ the ecosystem a precise way to discuss future runtime hooks.
 
 ### Why upstream instead of maintaining a fork?
 
-A debug format only becomes an ecosystem contract if the reference producer
-ships with the toolchain developers already use. A forked compiler rots and
-fragments the ecosystem. That is why Milestones 1 and 2 anchor acceptance on
-upstream submission and maintainer review, and why the two prerequisite
-compiler fixes are submitted as standalone pull requests that benefit every
-Daml user regardless of this proposal's outcome.
+A debug format only becomes an ecosystem contract if the compiler people
+already use can emit it. Keeping the emitter in a fork would fragment the
+ecosystem and eventually rot, so Milestones 1 and 2 tie acceptance to
+upstream submission and maintainer review. The two prerequisite compiler
+fixes go upstream as standalone pull requests in any case, since they
+improve stack traces for every Daml user whatever happens to this proposal.
 
 ### Why use package-relative paths and hashes?
 
@@ -534,9 +532,9 @@ organizations. Absolute local paths are not portable and can leak private
 machine details. Package-relative paths plus source hashes let tools verify
 source identity without committing to a developer's local filesystem layout.
 The specification also defines hashes at the byte level and requires a
-specific line-ending mismatch diagnostic, a lesson learned the hard way in
-Solidity metadata verification, where Windows checkouts silently fail hash
-checks.
+specific line-ending mismatch diagnostic, because checkouts with translated
+line endings are the most common cause of spurious hash failures in Solidity
+metadata verification.
 
 ### Why a dedicated `failureSites` section?
 
@@ -544,10 +542,10 @@ Failed completions carry a status and a message, not a source location.
 Without an indexed table of failure sites, tools must text-search source
 files for the message, which is ambiguous whenever messages repeat or are
 built dynamically. `failureSites` gives consumers an exact join key when
-`failWithStatus` error ids or static messages are used, and an honestly
-labeled degraded match otherwise. It also treats `failWithStatus` as the
-first-class failure mechanism, matching the direction of Daml 3.x, where
-user-defined exceptions are deprecated.
+`failWithStatus` error ids or static messages are used, and a clearly
+labeled weaker match otherwise. It also puts `failWithStatus` at the center
+of the failure model, matching Daml 3.x, where user-defined exceptions are
+deprecated.
 
 ### Why integrate with `dpm trace` first?
 
@@ -579,9 +577,9 @@ first.
 
 - **Compiler mapping complexity:** start with modules, templates, choices,
   fields, and core spans before attempting every expression form.
-- **Overstating runtime values:** the normative availability table makes the
-  correct classification testable, and consumers must display missing
-  interpreter-only values honestly.
+- **Overstating runtime values:** the availability table makes the correct
+  classification testable, and consumers must show a missing
+  interpreter-only value as missing rather than guessing it.
 - **Maintainer alignment risk:** maintainer review is the first milestone,
   the schema is not frozen before that review, and the standalone compiler
   fixes open the upstream conversation with small, obviously useful changes.
@@ -648,11 +646,11 @@ schema exists and backs Appendix A:
   provides source-level stepping over runtime debug traces
   (`walnuthq/dpm-trace`).
 
-Appendix A.13 lists precisely which parts of the specification the reference
-implementation emits today and which parts are specified for Milestone 2.
-The proof of concept exists to de-risk the proposal. The funded work is the
-maintainer-aligned specification, the upstreaming, the validator and corpus,
-and the independent ecosystem validation described in the milestones.
+Appendix A.13 lists which parts of the specification the reference
+implementation emits today and which parts are Milestone 2 work. The
+prototype shows the approach works end to end. The milestones pay for what
+turns it into an ecosystem standard: maintainer review, upstreaming,
+validation tooling, and independent testing.
 
 ---
 
@@ -735,8 +733,8 @@ above.
 
 - Enabling metadata emission MUST NOT change the compiled Daml-LF output.
   The package id of a package built with and without the emission flag MUST
-  be identical. This is the property that lets metadata from a debug build
-  describe the exact artifact that is deployed.
+  be identical, so that metadata from a debug build describes the exact
+  artifact that is deployed.
 - Metadata MUST be derived from the compiled Daml-LF package, never from
   textual scanning of sources.
 
@@ -919,7 +917,7 @@ search:
   `errorId` match, then exact static `message` match, then heuristic
   (substring) match. Each degradation MUST be labeled in consumer output, so
   a heuristic match is never presented as an exact one.
-- `failWithStatus` is the first-class failure mechanism of this section,
+- `failWithStatus` is the primary failure mechanism of this section,
   matching Daml 3.x, where user-defined exceptions are deprecated. `throw`
   sites exist for packages that still use exceptions.
 
@@ -1047,9 +1045,9 @@ choice-level debugging possible, both in the GHC to Daml-LF conversion:
    now preserved in the choice body, which both improves runtime stack
    traces and provides `steps` for choices.
 
-Both fixes are **unconditional** compiler changes, deliberately independent
-of the debug flag, so that the flag itself never alters the compiled output
-(the A.2 producer invariant). Two consequences must be understood:
+Both fixes are **unconditional** compiler changes, kept independent of the
+debug flag so that the flag itself never alters the compiled output (the
+A.2 producer invariant). Two consequences follow:
 
 - Packages built with a fixed compiler have different package ids than
   stock-compiler builds of the same source, exactly as with any compiler
@@ -1108,6 +1106,6 @@ Specified in this document and scheduled for Milestone 2:
 - Ledger-mode (gRPC) emission of `submission`/`created`/`exercised` trace
   events, if maintainers want it (A.9 keeps it backward compatible).
 
-This section exists so that no consumer is written against fields the
-producer does not yet emit, and so that reviewers can see exactly what the
-proof of concept demonstrates versus what the funded milestones deliver.
+Consumers should detect what a given artifact contains from
+`producer.features`, not from this list, which describes one implementation
+at one point in time.
