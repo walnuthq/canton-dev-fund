@@ -17,7 +17,10 @@ The goal is to give Daml/Canton developer tools a stable, portable way to map a
 compiled package back to source files, source spans, templates, choices,
 interfaces, expressions, failure sites, and value locations. The first
 consumers are trace, visualization, test-reporting, coverage, and source
-diagnostics tools, including the approved `dpm trace` visualization proposal.
+diagnostics tools, starting with the approved
+[DPM Trace Transaction Visualization](./dpm-trace-visualization.md)
+proposal, which names this work as its planned "Compiler Source Metadata"
+follow-on.
 
 This is not a request to expose private participant data or to change Canton
 transaction visibility. The metadata describes code, not ledger state. Tools
@@ -27,34 +30,6 @@ to the requesting party context.
 The concrete first version of the format, `daml-debug-info/v1`, is specified
 in [Appendix A](#appendix-a-daml-debug-infov1-draft-specification) of this
 document and is backed by a working reference implementation.
-
----
-
-## Relationship to the Approved `dpm trace` Proposal
-
-The Development Fund has approved the Walnut proposal
-[DPM Trace Transaction Visualization](./dpm-trace-visualization.md). That
-proposal is intentionally scoped to transaction inspection, visualization,
-prepared transaction comparison, failed completion diagnostics, and adoption.
-It uses existing Ledger API, JSON Ledger API, completion, package, and local
-project metadata. It does **not** require Daml compiler, Daml-LF interpreter,
-Canton node, or protocol changes.
-
-This proposal is the follow-on that the `dpm trace` proposal identifies under
-"Compiler Source Metadata".
-
-The boundary is:
-
-- `dpm trace` proves the user workflow and gives the ecosystem a useful first
-  source-aware consumer.
-- This proposal defines the metadata standard and the compiler and tooling
-  support that makes source-aware consumers reliable instead of heuristic.
-
-Without this metadata, tools can still show useful participant-visible
-transaction trees, but source-level explanations depend on local file
-discovery, `damlc inspect`, and text matching. That is good enough for a proof
-of concept and for early adoption. It is not enough for a durable Canton
-debugging, profiling, test, coverage, and explorer ecosystem.
 
 ---
 
