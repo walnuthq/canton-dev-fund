@@ -256,19 +256,12 @@ versions.
 
 ## Non-Goals
 
-This proposal does not include:
-
-- A hosted source registry or Sourcify-style verification service.
-- A VS Code extension.
-- A full DAP-compatible debugger.
-- Live breakpoints in Canton participants.
-- Daml-LF interpreter changes. The Speedy location hook needed for
-  expression-level stepping is reserved in Appendix A.10 and left to a
-  follow-up proposal.
-- Any mechanism to bypass participant visibility.
-- Any claim that failed submissions have update ids.
-
-Those are possible future proposals once the metadata contract is accepted.
+This proposal stops at the metadata contract. It does not fund an IDE
+debugger (no DAP adapter, no VS Code extension, no live breakpoints in
+Canton participants), a hosted source registry or Sourcify-style
+verification service, or changes to the Daml-LF interpreter (the stepping
+hook is reserved in Appendix A.10 for a follow-up). All of these are
+candidates for later proposals once the metadata contract is accepted.
 
 ---
 
