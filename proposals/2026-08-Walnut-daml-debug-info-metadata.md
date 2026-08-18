@@ -22,11 +22,6 @@ proposal, which names this work as its planned "Compiler Source Metadata"
 follow-on. Test, coverage, and explorer tools can build on the same
 contract.
 
-This is not a request to expose private participant data or to change Canton
-transaction visibility. The metadata describes code, not ledger state. Tools
-still operate through authorized participant APIs and only show values visible
-to the requesting party context.
-
 The first version of the format, `daml-debug-info/v1`, is specified
 in [Appendix A](#appendix-a-daml-debug-infov1-draft-specification) of this
 document and is backed by a working reference implementation.
