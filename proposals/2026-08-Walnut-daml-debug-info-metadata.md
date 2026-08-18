@@ -518,8 +518,8 @@ the ecosystem a precise way to discuss future runtime hooks.
 
 ### Why upstream instead of maintaining a fork?
 
-A debug format only becomes an ecosystem contract if the compiler people
-already use can emit it. Keeping the emitter in a fork would fragment the
+A debug format only becomes an ecosystem contract if the compiler that
+people already use can emit it. Keeping the emitter in a fork would fragment the
 ecosystem and eventually rot, so Milestones 1 and 2 tie acceptance to
 upstream submission and maintainer review. The two prerequisite compiler
 fixes go upstream as standalone pull requests in any case, since they
