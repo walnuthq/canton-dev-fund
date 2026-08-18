@@ -52,8 +52,7 @@ answers these questions for any package:
   the package, and how can a failed completion be joined back to one of them?
 - How can tools detect schema compatibility across SDK versions?
 
-The result is a public schema and reference tooling, not a Walnut-private
-format.
+The result is a public schema and reference tooling.
 
 ### 2. Motivation
 
