@@ -38,19 +38,14 @@ paths, and validate it with independent consumers.
 The first version targets Daml SDK 3.x packages (Daml-LF 2.1 and later) and
 answers these questions for any package:
 
-- Which source files produced this package?
-- Which source hashes prove those files match the compiled package?
-- Which modules, templates, interfaces, exceptions, choices, controllers,
-  observers, signatories, keys, and expressions correspond to which source
+- Which source files produced this package, and which hashes prove a local
+  checkout matches it?
+- Which definitions and Daml-LF references correspond to which source
   spans?
-- Which Daml-LF package, module, and entity references correspond to those
-  source spans?
-- Which values can a tool populate from ordinary transaction data, and
-  which need interpreter support and must not be claimed by trace-only
-  tools?
-- Which failure sites (assertions, aborts, `failWithStatus` calls) exist in
-  the package, and how can a failed completion be joined back to one of them?
-- How can tools detect schema compatibility across SDK versions?
+- Which values can a tool populate from transaction data, and which need
+  interpreter support and must not be claimed by trace-only tools?
+- Which failure sites exist, and how can a failed completion be joined back
+  to one of them?
 
 The result is a public schema and reference tooling.
 
@@ -89,23 +84,18 @@ protobuf encoding can be added without changing the conceptual model.
 
 The schema includes:
 
-- `schema`: stable schema identifier (`daml-debug-info/v1`).
-- `producer`: compiler or tool name, version, build mode, and feature flags.
-- `package`: package id, package name and version, Daml-LF version, and SDK
-  version.
-- `sources`: package-relative source paths, SHA-256 content hashes, and the
-  module-to-file mapping, plus an explicit record of modules whose sources
-  could not be mapped.
-- `spans`: source spans for definitions and located expressions.
-- `symbols`: modules, templates, interfaces, exceptions, choices, methods,
-  data types, and values, each carrying its Daml-LF reference where one
-  exists.
+- `package` and `producer`: package id, package name and version, Daml-LF
+  and SDK versions, emitting tool, and feature flags.
+- `sources`: package-relative paths, SHA-256 hashes, the module-to-file
+  mapping, and a record of modules that could not be mapped.
+- `spans` and `symbols`: source spans for definitions and located
+  expressions, and the templates, choices, interfaces, and values they
+  belong to, each with its Daml-LF reference.
 - `valueSlots`: value locations a tool may try to populate, each labeled
   `transaction-visible` or `interpreter-only`.
-- `failureSites`: assertion, abort, precondition, and `failWithStatus` sites
-  with their spans and statically known messages or error ids, so failed
-  completions can be joined to source without text search.
-- `steps`: deterministic source-level step descriptors for tool display.
+- `failureSites`: assertion, abort, precondition, and `failWithStatus`
+  sites with spans and statically known messages or error ids.
+- `steps`: deterministic source-level step descriptors.
 
 [Appendix A](#appendix-a-daml-debug-infov1-draft-specification) is the
 complete specification, including producer invariants, position semantics,
@@ -127,27 +117,15 @@ so metadata from a debug build describes the exact artifact that gets
 deployed. The upstream contribution includes a CI test for this package-id
 equality.
 
-Emission modes:
+The flag is `daml build --experimental-debug-info`. It writes a sidecar
+file next to the DAR and an optional DAR member under
+`META-INF/daml-debug-info/` that existing tools ignore, both byte-identical
+(Appendix A.1). Source paths are package-relative, and absolute local paths
+are never emitted.
 
-```bash
-daml build --experimental-debug-info
-```
-
-Packaging modes, specified in Appendix A.1:
-
-- Sidecar artifact next to the DAR.
-- Optional DAR member under `META-INF/daml-debug-info/`, ignored by existing
-  tools.
-- Both copies byte-identical.
-
-The producer normalizes source paths to package-relative paths. Absolute
-local paths are never emitted.
-
-Two small compiler fixes from the reference implementation (Appendix A.11)
-are prerequisites for choice-level debugging and improve stack traces for all
-Daml users independently of this proposal. Walnut will submit them to
-`digital-asset/daml` as standalone pull requests ahead of this proposal's
-review, together with measurements of DALF size and interpreter overhead.
+Two small compiler fixes are prerequisites for choice-level debugging
+(Appendix A.11). They go to `digital-asset/daml` as standalone pull
+requests ahead of this proposal's review.
 
 #### C. Runtime Debug Trace
 
@@ -169,26 +147,17 @@ proposal can add it without changing the trace contract.
 
 #### D. Reader, Validator, and Test Corpus
 
-Build a reference reader and validator package and CLI. It checks schema
-version and feature flags, package id, source hashes, span bounds, and
-internal reference consistency. It also enforces the rules that keep the
-metadata trustworthy in practice: availability labels must conform to the
-table in Appendix A.6, sidecar and DAR-member copies must be byte-identical,
-absolute paths are rejected, and a hash check that fails because of
-translated line endings gets its own diagnostic instead of a generic error.
+Build a reference reader and validator package and CLI implementing the
+consumer rules of Appendix A.12: schema and hash verification, span and
+availability conformance, byte-identical copies, path hygiene, and a
+dedicated diagnostic for line-ending mismatches.
 
-The test corpus includes representative Daml packages:
-
-- Simple create and consuming exercise.
-- Nested exercise with child creates.
-- Choices with controllers, observers, and signatories.
-- Interfaces and interface choices.
-- Contract keys where the target LF version supports them.
-- Assertions, aborts, and `failWithStatus` sites used by failed-completion
-  diagnostics.
-- Multi-module and multi-package examples.
-- A package upgrade example with two versions of the same package, to
-  exercise package-id-keyed resolution.
+The test corpus covers creates and consuming exercises, nested exercises
+with child creates, controllers, observers and signatories, interfaces and
+interface choices, contract keys where the target LF version has them,
+assertion and `failWithStatus` sites, multi-module and multi-package
+layouts, and a package upgrade example with two versions of the same
+package.
 
 #### E. Consumer Integration: `dpm trace` and `dpm debug`
 
@@ -235,9 +204,8 @@ cannot receive a package's debug info through the ledger. That protects
 privacy, and it also makes a registry for third-party packages the natural
 follow-on.
 
-The proposal supports the Development Fund's developer-experience and shared
-tooling priorities, and gives multiple tools one contract instead of locking
-the ecosystem to a single debugger or one vendor's trace format.
+The result is one contract for many tools instead of a single debugger or
+one vendor's trace format.
 
 ### 5. Backward Compatibility
 
@@ -280,31 +248,26 @@ upstream pull requests opened.
 
 **Deliverables / Value Metrics:**
 
-- Public `daml-debug-info/v1` specification published in a location agreed
-  with Daml/Canton maintainers (Appendix A is the starting draft).
-- Machine-checkable JSON Schema for the format.
-- Compatibility and versioning rules, position semantics, and path-hygiene
-  rules.
-- Value availability table distinguishing transaction-visible from
-  interpreter-only values per slot kind (Appendix A.6).
-- `failureSites` definition for failed-completion diagnostics (Appendix A.7).
-- The two compiler location fixes from the reference implementation submitted
-  to `digital-asset/daml` as standalone pull requests, with DALF size and
-  interpreter overhead measurements on a large public package.
+- Public `daml-debug-info/v1` specification and machine-checkable JSON
+  Schema, published in a location agreed with maintainers (Appendix A is
+  the starting draft).
+- Versioning, position, and path-hygiene rules, the per-slot-kind
+  availability table (Appendix A.6), and the `failureSites` definition
+  (Appendix A.7).
+- The two compiler location fixes submitted to `digital-asset/daml` as
+  standalone pull requests, with DALF size and interpreter overhead
+  measurements on a large public package.
 - Review session with Daml/Canton maintainers and at least one ecosystem
   tooling consumer.
 
 **Acceptance Criteria:**
 
-- A Daml/Canton maintainer or delegated reviewer confirms that the schema is
-  plausible for compiler emission.
-- The schema represents at least these representative Daml constructs:
-  template, choice, choice argument, contract payload field, and failed
-  assertion source span.
-- The schema explicitly distinguishes transaction-visible values from
-  interpreter-only values, per slot kind.
-- The two standalone compiler fix pull requests are open upstream and
-  maintainers have started reviewing them.
+- A maintainer or delegated reviewer confirms the schema is plausible for
+  compiler emission and covers template, choice, choice argument, payload
+  field, and failed assertion spans.
+- The schema distinguishes transaction-visible from interpreter-only values
+  per slot kind.
+- The two compiler fix pull requests are open upstream and under review.
 
 ### Milestone 2: Compiler and Runtime Emission Upstreaming
 
@@ -314,34 +277,24 @@ toolchain.
 
 **Deliverables / Value Metrics:**
 
-- Metadata emission path submitted to `digital-asset/daml` behind an
-  experimental flag, or through an emission path maintainers prefer.
-- A CI test asserting that the package id of a package built with and
-  without the debug flag is identical (the producer invariant of Appendix
-  A.2).
-- Runtime debug trace emission in the Daml Script runner (workstream C)
+- Metadata emission submitted to `digital-asset/daml` behind an
+  experimental flag (or through an emission path maintainers prefer), with
+  a CI test that the package id is identical with and without the flag
+  (the Appendix A.2 invariant).
+- Runtime debug trace emission in the Daml Script runner (workstream C),
   submitted the same way.
-- Source path normalization, source hash generation, and the
-  `unmappedModules` record.
-- `failureSites` emission for abort, assertion, precondition, and
-  `failWithStatus` sites.
-- Mapping for modules, templates, choices, fields, and core expression
-  spans.
-- Documentation explaining how to generate metadata and traces.
+- Path normalization, source hashes, `unmappedModules`, `failureSites`
+  emission, and span mapping for modules, templates, choices, and fields.
+- Documentation for generating metadata and traces.
 
 **Acceptance Criteria:**
 
-- A developer can compile a representative package with the upstream-submitted
-  emission path and produce a `daml-debug-info/v1` artifact containing
-  package id, source hashes, source spans, symbols, LF references, value
-  slots, failure sites, and steps.
+- A representative package built with the upstream-submitted path produces
+  a complete `daml-debug-info/v1` artifact with no absolute paths, and
+  builds without the flag are unaffected.
 - The package-id invariance test passes in CI.
-- The artifact contains no absolute local paths.
-- Existing package compilation is unaffected when debug metadata is not
-  requested.
-- The upstream pull requests are under active review, or, if upstreaming is
-  declined, an alternative distribution path agreed with maintainers is
-  documented and delivered.
+- The upstream pull requests are under active review, or an alternative
+  distribution path agreed with maintainers is documented and delivered.
 
 ### Milestone 3: Reader, Validator, and Corpus
 
@@ -350,25 +303,21 @@ toolchain.
 
 **Deliverables / Value Metrics:**
 
-- Open-source reader and validator library and CLI.
-- Validation diagnostics for stale source hashes (including a specific
-  line-ending mismatch diagnostic), span mismatches, unsupported schema
-  versions, availability-label conformance, sidecar/DAR-member divergence,
-  and non-portable paths.
-- Test corpus covering the representative constructs listed in workstream D,
-  including a multi-package example and a package upgrade example.
-- Compatibility tests for forward-compatible unknown fields.
+- Open-source reader and validator library and CLI, with diagnostics for
+  stale hashes (including line-ending mismatches), span and availability
+  violations, sidecar/DAR-member divergence, unsupported versions, and
+  non-portable paths.
+- Test corpus covering the workstream D constructs, including multi-package
+  and upgrade examples, plus forward-compatibility tests for unknown
+  fields.
 - Documentation for tool authors.
 
 **Acceptance Criteria:**
 
-- The validator accepts all valid corpus artifacts and rejects intentionally
-  corrupted artifacts.
-- A tool author can load the metadata and resolve a package, module,
-  template, or choice reference to a source span without using
-  Walnut-specific code.
-- The corpus includes at least one multi-package example and one upgrade
-  example with two versions of the same package.
+- The validator accepts all valid corpus artifacts and rejects
+  intentionally corrupted ones.
+- A tool author can resolve a package, module, template, or choice
+  reference to a source span without Walnut-specific code.
 
 ### Milestone 4: Consumer Integration, Adoption, and Ecosystem Validation
 
@@ -377,32 +326,25 @@ toolchain.
 
 **Deliverables / Value Metrics:**
 
-- `dpm trace` support for loading `daml-debug-info/v1` sidecar or
-  DAR-embedded metadata.
-- Failed-completion source diagnostics in `dpm trace` driven by
-  `failureSites`, with clearly labeled match quality (exact error id, exact
-  static message, or degraded heuristic).
-- Source-linked transaction, compare, and test-report output using the
-  metadata.
+- `dpm trace` loads sidecar or DAR-embedded metadata and uses
+  `failureSites` for failed-completion diagnostics, with labeled match
+  quality (exact error id, exact message, or heuristic).
+- Source-linked transaction, compare, and test-report output.
 - `dpm debug` source-level stepping over the workstream C runtime trace,
-  with explicit labels for transaction-visible and interpreter-only values.
-- Example package and walkthrough connecting compiler emission, runtime
-  trace, and consumer output.
-- Feedback report from at least three Canton developers or organizations
-  that test the metadata-backed workflow.
-- Follow-up issues filed for the Speedy interpreter location hook and any
-  other runtime hooks needed for a future true debugger.
+  labeling transaction-visible and interpreter-only values.
+- Example package and walkthrough from compiler emission to consumer
+  output.
+- Feedback from at least three Canton developers or organizations, and
+  follow-up issues for the Speedy location hook.
 
 **Acceptance Criteria:**
 
-- `dpm trace` resolves source diagnostics for a failed completion without
-  relying on text-search-only heuristics when metadata with `failureSites`
-  is available.
-- `dpm trace` and `dpm debug` correctly refuse to show values that are not
-  present in participant-visible data or the local trace, and label them as
-  interpreter-only instead.
-- At least two independent testers confirm that metadata-backed source links
-  are more reliable than the pre-metadata workflow.
+- `dpm trace` resolves failed-completion diagnostics without text-search
+  heuristics when `failureSites` metadata is available.
+- Both tools refuse to show values absent from participant-visible data or
+  the local trace, labeling them interpreter-only.
+- At least two independent testers confirm the metadata-backed source links
+  beat the pre-metadata workflow.
 
 ---
 
@@ -410,17 +352,13 @@ toolchain.
 
 The Tech & Ops Committee can evaluate completion based on:
 
-- A public, versioned metadata specification with a machine-checkable
-  schema.
-- Emission paths for metadata and runtime traces submitted upstream, with
-  the package-id invariance guarantee tested in CI.
-- A reader and validator that independent tools can use.
-- A representative Daml test corpus, including an upgrade example.
+- A public, versioned specification with a machine-checkable schema,
+  reviewed by maintainers.
+- Emission paths submitted upstream, with the package-id invariance tested
+  in CI.
+- A reader, validator, and test corpus that independent tools can use.
 - `dpm trace` and `dpm debug` integrations that improve real developer
-  workflows.
-- Clear privacy and value-availability semantics.
-- Maintainer review of the schema and emission approach.
-- Independent ecosystem feedback.
+  workflows, with independent ecosystem feedback.
 
 The value to the ecosystem is not the existence of a JSON file. The value is
 that source-aware Daml/Canton tools can share one stable metadata contract
@@ -461,15 +399,10 @@ to account for significant USD/CC price volatility.
 
 ## Co-Marketing
 
-Walnut can collaborate with the Canton Foundation and Daml/Canton maintainers
-on:
-
-- A technical post explaining Daml debug metadata and Canton privacy
-  boundaries.
-- A demo showing metadata-backed `dpm trace` failed-completion diagnostics
-  and `dpm debug` stepping.
-- Documentation for ecosystem tool authors.
-- A follow-up discussion on future debugger and runtime hooks.
+Walnut can work with the Canton Foundation and Daml/Canton maintainers on a
+technical post about Daml debug metadata and Canton privacy boundaries, a
+demo of metadata-backed diagnostics and `dpm debug` stepping, and
+documentation for ecosystem tool authors.
 
 ---
 
@@ -522,55 +455,31 @@ transactions, test reports, and source diagnostics. Integrating metadata
 there validates the schema against real workflows without requiring a new
 hosted product or IDE.
 
-### Why not put this only in `damlc inspect`?
-
-`damlc inspect` is useful, but tools should be able to load and verify the
-metadata without invoking a compiler every time, and the artifact should
-outlive any single SDK installation. `damlc inspect` can still be one way to
-view or derive it.
-
-### Why not make this a source registry proposal?
-
-A registry may be useful later, especially for packages a developer did not
-build locally, and the trust model in section 4 explains why: the ledger
-never transports debug metadata, so third-party packages need an out-of-band
-distribution and verification channel. A registry depends on a stable
-package and source metadata format. This proposal creates that foundation
-first.
-
 ---
 
 ## Risks and Mitigations
 
-- **Compiler mapping complexity:** start with modules, templates, choices,
-  fields, and core spans before attempting every expression form.
+- **Maintainer alignment:** review is Milestone 1, the schema is not frozen
+  before it, and the standalone fixes open the conversation with small,
+  useful changes. If upstreaming is declined, Milestone 2 falls back to a
+  distribution path agreed with maintainers.
 - **Overstating runtime values:** the availability table makes the correct
   classification testable, and consumers must show a missing
   interpreter-only value as missing rather than guessing it.
-- **Maintainer alignment risk:** maintainer review is the first milestone,
-  the schema is not frozen before that review, and the standalone compiler
-  fixes open the upstream conversation with small, obviously useful changes.
-- **Upstreaming declined:** Milestone 2 defines the fallback explicitly: a
-  maintainer-agreed alternative distribution path for the emission tooling.
-- **SDK evolution:** major-versioned schemas, feature flags, and
-  forward-compatible parsing rules.
-- **Path and data leaks:** package-relative paths and hashes by default, and
-  the validator rejects absolute paths in strict mode. Runtime trace files
-  contain ledger data visible to the submitting context and are documented
-  as sensitive.
-- **Scope creep into debugger and runtime hooks:** runtime-hook findings are
-  documented as follow-up work, not as a blocker for the metadata standard.
+- **Path and data leaks:** package-relative paths and hashes by default,
+  absolute paths rejected in strict mode, and runtime trace files
+  documented as sensitive.
+- **Scope creep:** runtime-hook findings become follow-up proposals, not
+  blockers for the metadata standard.
 
 ---
 
 ## Maintenance
 
-The specification will live in a Foundation or Daml/Canton-maintainer-approved
-public location once accepted. Reference tooling will be open source under
-Apache-2.0 unless maintainers request a different standard license. Walnut
-will maintain the `dpm trace` and `dpm debug` consumer integrations.
-Long-term compiler emission maintenance follows the ownership model agreed
-with Daml maintainers, which is a Milestone 1 discussion item.
+The specification will live in a maintainer-approved public location once
+accepted, and reference tooling is Apache-2.0 unless maintainers prefer
+another license. Walnut maintains the `dpm trace` and `dpm debug`
+integrations. Compiler emission ownership is a Milestone 1 discussion item.
 
 ---
 
@@ -582,39 +491,23 @@ visualization, simulation, contract verification, and debugger UX across
 ecosystems including Starknet, Ethereum/Solidity (debug info generation in
 the official Solidity compiler, `solc`), and Arbitrum Stylus.
 
-That experience is directly relevant here: Daml needs debug metadata that is
-specific to Daml-LF and Canton privacy, not a generic copy of EVM or native
-debugging formats.
-
 ---
 
 ## Reference Implementation Status
 
 A working reference implementation of the `daml-debug-info/v1` schema
-exists and backs Appendix A:
-
-- `daml build --experimental-debug-info`
-  (branch `walnuthq/daml@feature/debug-info`) emits the metadata from the
-  compiled Daml-LF package (sidecar JSON plus a
-  `META-INF/daml-debug-info/<package-id>.json` DAR member), with
-  package-relative source paths, SHA-256 source hashes, symbols, spans,
-  Daml-LF references, value slots with availability labels, and
-  deterministic evaluation steps. Metadata is derived from the compiled
-  package, never from textual scanning of sources.
-- Two compiler fixes make choice-level debugging possible: choice
-  declaration locations are now populated in the Daml-LF AST, and source
-  locations are no longer stripped from choice bodies during the GHC to
-  Daml-LF conversion (Appendix A.11). Walnut will submit both to
-  `digital-asset/daml` as standalone pull requests ahead of this proposal's
-  review, together with DALF size and interpreter overhead measurements.
-- `daml script --debug-trace-file <file>` (Daml Script runner extension,
-  same branch) emits the JSONL runtime debug trace of Appendix A.9.
-- `dpm trace` consumes the metadata for source links, and `dpm debug`
-  provides source-level stepping over runtime debug traces
-  (`walnuthq/dpm-trace`).
-
-Appendix A.13 lists which parts of the specification the reference
-implementation emits today and which parts are Milestone 2 work.
+exists and backs Appendix A. On branch `walnuthq/daml@feature/debug-info`,
+`daml build --experimental-debug-info` emits the metadata from the compiled
+Daml-LF package (sidecar JSON plus a DAR member), and
+`daml script --debug-trace-file` emits the Appendix A.9 runtime trace. The
+metadata is derived from the compiled package, never from textual scanning
+of sources. Two compiler fixes make choice-level debugging possible
+(Appendix A.11), and Walnut will submit both to `digital-asset/daml` as
+standalone pull requests ahead of this proposal's review, with DALF size
+and interpreter overhead measurements. In `walnuthq/dpm-trace`, `dpm trace`
+consumes the metadata for source links and `dpm debug` steps through
+runtime traces. Appendix A.13 lists what the implementation emits today
+versus what is Milestone 2 work.
 
 ---
 
@@ -631,11 +524,10 @@ implementation emits today and which parts are Milestone 2 work.
 
 ## Appendix A: `daml-debug-info/v1` draft specification
 
-This appendix is the draft specification of the format, backed by
-the reference implementation described above. During Milestone 1 it moves to
-a maintainer-agreed public location and gains a machine-checkable JSON
-Schema. The key words MUST, MUST NOT, SHOULD, and MAY are used as in RFC
-2119. Appendix A.13 records where the current reference implementation still
+This appendix is the draft specification, backed by the reference
+implementation. During Milestone 1 it moves to a maintainer-agreed public
+location and gains a machine-checkable JSON Schema. MUST, SHOULD, and MAY
+are used as in RFC 2119, and A.13 records where the implementation still
 differs from this text.
 
 ### A.1 Artifact placement
@@ -651,16 +543,15 @@ A producer emits the metadata twice:
 
 Rules:
 
-- The two copies MUST be byte-identical. A consumer that reads both and
-  finds different bytes MUST treat the metadata as invalid.
-- When both are present and identical, the DAR member is authoritative
-  (it travels with the artifact). The sidecar exists for convenience.
-- v1 producers emit metadata for the main package of the DAR only.
-  Dependency packages carry their own metadata in their own DARs.
+- The two copies MUST be byte-identical, and a consumer that finds
+  different bytes MUST treat the metadata as invalid. The DAR member is
+  authoritative, and the sidecar exists for convenience.
+- v1 producers emit metadata for the main package only. Dependencies carry
+  their own metadata in their own DARs.
 - Embedding changes the DAR file hash, never the package id.
-- Producers SHOULD emit a stable, canonical serialization (UTF-8, LF
-  newlines, stable key order for a given producer version), so identical
-  inputs produce identical bytes.
+- Producers SHOULD emit a canonical serialization (UTF-8, LF newlines,
+  stable key order per producer version), so identical inputs produce
+  identical bytes.
 
 ### A.2 Top-level document
 
@@ -687,11 +578,9 @@ Rules:
 ```
 
 **Versioning.** `schema` is the major-versioned identifier. Consumers MUST
-reject documents whose major version they do not support and MUST ignore
-unknown fields anywhere in a document whose major version they do support.
-The `compatibility` object is informative only: producers MAY emit it,
-consumers MUST NOT rely on it, and the normative rules are the two sentences
-above.
+reject unsupported major versions and MUST ignore unknown fields in a
+supported one. The `compatibility` object is informative only: producers
+MAY emit it, and consumers MUST NOT rely on it.
 
 **Producer invariants.**
 
@@ -734,43 +623,27 @@ and empty".
 ### A.3 `sources`
 
 One entry per package module whose source file resolved under the package
-source root at build time:
-
-```json
-{ "id": "src:Nested.Util", "module": "Nested.Util",
-  "uri": "daml://asset-demo/Nested/Util.daml",
-  "path": "Nested/Util.daml",
-  "sha256": "<content hash>" }
-```
+source root at build time.
 
 - `path` is package-relative (relative to the `source:` root of
   `daml.yaml`). Producers MUST NOT emit absolute local paths.
 - `sha256` is the hash of the **exact bytes the compiler read**, with no
-  normalization. Consumers verify it before trusting spans (stale-source
-  detection). Because a checkout with translated line endings (for example
-  git `core.autocrlf` on Windows) has different bytes, consumers SHOULD
-  retry a failed verification with newline-normalized content and, on a
-  match, report a specific line-ending mismatch diagnostic instead of a
+  normalization, verified by consumers before trusting spans. A checkout
+  with translated line endings (git `core.autocrlf` on Windows) has
+  different bytes, so consumers SHOULD retry with newline-normalized
+  content and, on a match, report a line-ending mismatch instead of a
   generic hash failure.
-- `module` gives consumers the module-to-file mapping directly (Daml-LF does
-  not serialize module source paths).
-- `uri` is informative display material only. Its authority component is the
-  package name, which is not unique across the ecosystem, so consumers MUST
-  NOT use `uri` as a resolution or identity key. `path` plus `sha256` are
-  the normative identifiers.
-- Modules whose source files did not resolve under the source root (for
-  example files included from outside it, or generated modules) are listed
-  by module name in the top-level `unmappedModules` array, so consumers can
-  distinguish "this module has no mapping" from "this module does not
-  exist".
+- `module` gives consumers the module-to-file mapping directly (Daml-LF
+  does not serialize module source paths).
+- `uri` is informative display material only. Its authority is the package
+  name, which is not unique, so consumers MUST NOT use `uri` as a
+  resolution key. `path` plus `sha256` are the normative identifiers.
+- Modules whose sources did not resolve under the source root (files
+  included from outside it, generated modules) are listed by name in the
+  top-level `unmappedModules` array, so "no mapping" is distinguishable
+  from "no such module".
 
 ### A.4 `spans`
-
-```json
-{ "id": "span:Asset:Asset", "source": "src:Asset",
-  "kind": "template-definition",
-  "start": {"line": 5, "column": 10}, "end": {"line": 10, "column": 17} }
-```
 
 Kinds emitted by the reference producer: `template-definition`,
 `choice-definition`, `interface-definition`, `interface-method-definition`,
@@ -797,10 +670,9 @@ in A.2 and apply to every `start`/`end` pair in the document.
 
 - Kinds: `module`, `template`, `choice`, `interface`, `interface-choice`,
   `interface-method`, `exception`, `record`, `variant`, `enum`, `value`.
-- `interface-method` and the `interface-method-definition` span kind refer
-  to the method **declaration inside the interface definition**. Spans for a
-  template's method implementations inside its interface instance are not
-  emitted in v1. The kind `interface-instance-method` is reserved for them.
+- `interface-method` and its span kind refer to the declaration inside the
+  interface definition. Implementation spans in a template's interface
+  instance are not emitted in v1 (`interface-instance-method` is reserved).
 - `qualifiedName` conventions: `Module:Entity` (templates, interfaces,
   types, values) and `Module:Entity.Choice` (choices), matching the
   identifiers that appear in Ledger API events, completions, and error
@@ -815,25 +687,14 @@ in A.2 and apply to every `start`/`end` pair in the document.
 
 ### A.6 `valueSlots` and availability
 
-```json
-{ "id": "slot:Asset:Asset:Transfer:argument:newOwner",
-  "symbol": "sym:Asset:Asset:Transfer", "name": "newOwner",
-  "kind": "choice-argument-field", "type": "Party",
-  "availability": "transaction-visible" }
-```
-
-`availability` is the privacy-honesty contract:
-
-- `transaction-visible`: populatable from participant-visible transaction
-  data by a party entitled to see the event.
-- `interpreter-only`: only observable with interpreter or runtime support.
-  Trace-only tools MUST NOT claim these from transaction data. They should
-  show the slot and label the value as not captured.
-
-The values `source-only` and `not-tracked` are reserved for future use.
-
-The availability of each slot kind is **normative**, so a validator can
-check conformance:
+`availability` is the privacy-honesty contract. A `transaction-visible`
+slot is populatable from participant-visible transaction data by a party
+entitled to see the event. An `interpreter-only` slot is observable only
+with interpreter or runtime support: trace-only tools MUST NOT claim it
+from transaction data, and should show the slot with the value marked as
+not captured. (`source-only` and `not-tracked` are reserved.) The
+availability of each slot kind is normative, so a validator can check
+conformance:
 
 | Slot kind | Availability | Populated from |
 | --- | --- | --- |
@@ -878,9 +739,9 @@ search:
 - `ensure` sites point at the template precondition expression, joinable
   from precondition-failure errors via the owning template symbol.
 - Consumers join a failed completion to a site in order of strength: exact
-  `errorId` match, then exact static `message` match, then heuristic
-  (substring) match. Each degradation MUST be labeled in consumer output, so
-  a heuristic match is never presented as an exact one.
+  `errorId`, exact static `message`, then heuristic substring. Each
+  degradation MUST be labeled, so a heuristic match is never presented as
+  exact.
 - `failWithStatus` is the primary failure mechanism of this section,
   matching Daml 3.x, where user-defined exceptions are deprecated. `throw`
   sites exist for packages that still use exceptions.
@@ -893,25 +754,17 @@ Producers that emit this section include `failure-sites` in
 Deterministic evaluation step descriptors: the source spans of the compiled
 Daml-LF expression's location nodes in **pre-order**, per owning symbol
 (choice bodies and top-level values, which include Daml Script entry
-points):
-
-```json
-{ "id": "step:Asset:test_transfer:0", "symbol": "sym:Asset:test_transfer",
-  "index": 0, "source": "src:Asset",
-  "start": {"line": 30, "column": 3}, "end": {"line": 30, "column": 40} }
-```
+points).
 
 - `index` is **document order** (pre-order of the compiled expression), not
   execution order. Consumers MUST NOT render steps as a timeline.
 - De-duplication: when the same `(source, start, end)` span occurs more than
   once in pre-order, only the first occurrence is kept.
 - Step ids are stable for a given package id, so runtime events and
-  breakpoints can reference them portably. Runtime debug events that carry
-  source locations join against these spans by
-  `(packageId, module, start, end)`. The package id is part of the join key
-  because, under smart contract upgrades, several versions of a package with
-  identical module names and often identical spans routinely coexist in one
-  run.
+  breakpoints can reference them portably. Runtime events join these spans
+  by `(packageId, module, start, end)`: under smart contract upgrades,
+  several versions of a package with identical module names and spans can
+  coexist in one run, so the package id is part of the key.
 - Known limitation: create-time expressions (signatories, observers,
   precondition, key) have spans (A.4) but no steps in v1, so stepping
   through a create does not stop inside them.
@@ -955,46 +808,31 @@ back to the value's textual rendering as a single JSON string, and consumers
 MUST tolerate that fallback.
 
 **Modes.** The `submission`, `created`, and `exercised` events are emitted
-in IDE-ledger runs (the reference implementation hooks the IDE ledger
-client). When a script runs against a real participant over gRPC, the
-reference implementation emits the script-level events only (`script-start`,
-`trace`, `warning`, `question`, `script-end`). The MUST-ignore-unknown-events
-rule makes adding ledger-mode event emission later backward compatible.
+in IDE-ledger runs. Against a real participant over gRPC, the reference
+implementation emits the script-level events only. The ignore-unknown-events
+rule makes adding ledger-mode emission later backward compatible.
 
 **Stability.** `question` event names and versions (for example `Submit`)
 are Daml Script internals with no stability guarantee. They are informative,
 and consumers MUST NOT build behavior on specific question names.
 
-**Sensitivity.** Values in `created` and `exercised` events come from a
-local script run against the developer's own ledger. The trace never
-contains data the submitting context could not see, but it does contain
-ledger data (party identifiers, contract payloads). Treat trace files as
-sensitive: do not commit them to version control or share them outside the
-context entitled to the data. Local variables and intermediate expression
-values are **not** captured. Consumers must present them as
+**Sensitivity.** Trace values come from a local script run and never
+contain data the submitting context could not see, but they do contain
+ledger data (party identifiers, payloads). Treat trace files as sensitive
+and keep them out of version control. Local variables and intermediate
+expression values are **not** captured. Consumers must present them as
 `interpreter-only`, not invent them.
 
 ### A.10 Runtime follow-up: interpreter location hook
 
-The reference runtime implementation hooks the Daml Script layer: script
-questions (with Daml call-stack locations), submissions, ledger events, and
-`trace`/`debug` output. Expression-level stepping *within* a choice body
-needs one additional hook in the Speedy interpreter, for which this
-specification reserves the shape:
-
-```scala
-trait MachineLogger {                    // existing trait, existing methods
-  def trace(message: String, location: Option[Location]): Unit
-  def warn(message: String, location: Option[Location]): Unit
-  def onLocation(location: Location): Unit = ()   // NEW, default no-op
-}
-```
-
-called from the machine's `SELocation` handling, gated so the disabled cost
-is one branch. With that hook, the same JSONL contract gains
-`{"event":"step","location":{LOC}}` lines that join against `steps` in the
-metadata. This is intentionally split out as follow-up work, per this
-proposal's scoping.
+The reference runtime hooks the Daml Script layer only. Expression-level
+stepping *within* a choice body needs one additional Speedy interpreter
+hook, for which this specification reserves the shape: a
+`MachineLogger.onLocation(location: Location): Unit` method with a default
+no-op body, called from the machine's `SELocation` handling and gated so
+the disabled cost is one branch. With that hook, the same JSONL contract
+gains `{"event":"step","location":{LOC}}` lines that join against `steps`.
+This is follow-up work, per this proposal's scoping.
 
 ### A.11 Compiler changes in the reference implementation
 
@@ -1014,40 +852,32 @@ debug flag so that the flag itself never alters the compiled output (the
 A.2 producer invariant). Two consequences follow:
 
 - Packages built with a fixed compiler have different package ids than
-  stock-compiler builds of the same source, exactly as with any compiler
-  change. Metadata with choice `steps` therefore exists only for packages
-  built by a compiler that includes the fixes. Stepping cannot be
-  retrofitted onto packages built before them, because their choice bodies
+  stock-compiler builds of the same source, as with any compiler change.
+  Choice `steps` therefore exist only for packages built with the fixes.
+  Stepping cannot be retrofitted onto older builds, whose choice bodies
   contain no location nodes.
 - Preserved locations are semantically transparent but not free: they add
   location nodes to the serialized package and to interpretation. The
-  standalone upstream pull requests for these fixes include DALF size and
-  interpreter overhead measurements on a large public package, so
-  maintainers can judge the cost with data.
+  upstream pull requests include DALF size and interpreter overhead
+  measurements, so maintainers can judge the cost with data.
 
 ### A.12 Validation rules for consumers
 
 - Reject unsupported major schema versions. Ignore unknown fields
   otherwise.
-- Verify `package.packageId` against the DAR or DALF when both are
-  available.
-- Verify that sidecar and DAR-member copies are byte-identical when both
-  are present. Treat divergence as invalid metadata.
+- Verify `package.packageId` against the DAR or DALF, and verify that
+  sidecar and DAR-member copies are byte-identical. Treat divergence as
+  invalid metadata.
 - Verify source `sha256` before trusting spans. On mismatch, retry with
-  newline-normalized content and report a line-ending mismatch specifically.
-  Otherwise degrade to span-less symbol information (module and
-  qualified-name resolution).
+  newline-normalized content and report a line-ending mismatch
+  specifically. Otherwise degrade to span-less symbol information.
 - Reject absolute source paths (strict mode) or warn (lenient mode).
-- Check value-slot availability labels against the normative table in A.6.
-- Never populate an `interpreter-only` slot from transaction data.
-- Resolve metadata strictly by package id, never by package name (smart
-  contract upgrades make several versions of one package name live at
-  once).
-- Treat all debug metadata as advisory. It is trusted only as much as its
-  distribution channel: nothing binds a sidecar or DAR member to the DALF,
-  because `META-INF` members are not part of the package id. For packages
-  the consumer did not build, the only strong verification is to rebuild
-  from source and compare package ids.
+- Check availability labels against the table in A.6, and never populate an
+  `interpreter-only` slot from transaction data.
+- Resolve metadata strictly by package id, never by package name.
+- Treat all metadata as advisory, trusted as much as its distribution
+  channel. For packages the consumer did not build, the strong check is to
+  rebuild from source and compare package ids.
 
 ### A.13 Reference implementation status
 
@@ -1058,17 +888,12 @@ following today: `source-spans`, `symbols`, `lf-refs`, `value-slots`,
 copies rendered from one serialization, and the A.9 runtime trace with
 IDE-ledger event emission.
 
-Specified in this document and scheduled for Milestone 2:
-
-- `failureSites` (A.7) and the `failure-sites` feature flag.
-- `unmappedModules` (A.3).
-- Reclassification of `choice-observers` and `key-maintainers` to
-  `interpreter-only` in the emitter, per the normative table in A.6 (the
-  current prototype labels them `transaction-visible`).
-- The CI test asserting package-id equality with and without the debug
-  flag (A.2).
-- Ledger-mode (gRPC) emission of `submission`/`created`/`exercised` trace
-  events, if maintainers want it (A.9 keeps it backward compatible).
+Specified in this document and scheduled for Milestone 2: `failureSites`
+(A.7), `unmappedModules` (A.3), the package-id invariance CI test (A.2),
+reclassifying `choice-observers` and `key-maintainers` to
+`interpreter-only` in the emitter (the prototype labels them
+`transaction-visible`), and optional ledger-mode emission of trace events
+(A.9).
 
 Consumers should detect what a given artifact contains from
 `producer.features`, not from this list, which describes one implementation
