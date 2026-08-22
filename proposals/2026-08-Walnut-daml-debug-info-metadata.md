@@ -287,7 +287,7 @@ toolchain.
 
 **Acceptance Criteria:**
 
-- Both changes are **merged** into `digital-asset/daml`.
+- All three changes are **merged** into `digital-asset/daml`.
 - A developer can build any Daml package with a released or nightly build
   of the compiler and get valid metadata, with no absolute paths and no
   change to the package id.
