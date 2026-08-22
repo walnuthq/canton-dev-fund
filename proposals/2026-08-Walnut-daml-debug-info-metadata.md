@@ -491,7 +491,7 @@ this proposal asks for in Daml.
 
 ## What already exists
 
-We built the prototype before asking for funding. In
+We built a prototype at
 [walnuthq/daml](https://github.com/walnuthq/daml/tree/feature/debug-info):
 
 - `daml build --debug-info` emits the metadata, taken from
