@@ -40,9 +40,9 @@ source.
    into the official Daml repository.
 3. **A runtime trace.** Daml Script writes a log of what a run did and
    where in the source each step happened.
-4. **A reader library.** Code that loads the metadata, verifies it, and
-   answers "which source line is this?", with example Daml packages we test
-   against.
+4. **A verifier and a reader library.** A tool that proves a metadata
+   file is correct, and code that loads it and answers "which source line
+   is this?", with example Daml packages we test against.
 5. **The tooling that uses it.** Source-level views added to `dpm trace`,
    whose transaction inspection and visualization are already funded by the
    approved DPM Trace proposal, and `dpm debug`, a new command-line
@@ -145,19 +145,35 @@ Section 4 explains how a debugger uses those markers to stop. Marking is
 opt-in and separate from metadata emission, so an ordinary build still
 produces an identical package id.
 
-#### D. Reader library and examples
+#### D. Verification and the reader library
 
-A small open-source library and command-line tool that reads a metadata
-file and checks it is trustworthy before anything relies on it: that it
-matches the package, that the source files on disk are the ones that were
-compiled, that the spans point inside those files, and that no absolute
-paths from someone's laptop leaked into it. Given a template or choice, it
-returns the source location.
+Debug info that is quietly wrong is worse than none, because the debugger
+will confidently point at the wrong line and the developer will believe it.
+Every serious debug format ships a verifier for that reason. LLVM checks
+debug metadata inside the compiler, and `llvm-dwarfdump --verify` checks it
+in a built binary. Daml needs the same, so verification is a deliverable
+here rather than a side effect of writing a reader.
 
-Any tool that wants to use the metadata starts here instead of writing its
-own parser. It ships with example Daml packages covering the cases that
-break naive implementations, including interfaces, contract keys, several
-packages at once, and two versions of the same package.
+It happens at three levels. The JSON Schema checks shape: required fields,
+types, and allowed values, which any tool can run without our code. A
+schema cannot check meaning, so the verifier also confirms that every
+reference resolves, that ids are unique, that spans are well formed, and
+that no value carries a more permissive availability label than the rules
+allow. The strongest level compares the file against the things it
+describes: the package id must match the DAR, the source hashes must match
+the files on disk, and every span must land inside the file it names.
+
+`dpm debug-info verify <dar>` runs all three and says what failed and
+where, with machine-readable output for CI. The same checks run inside
+`damlc` behind a flag and over the example packages in the compiler test
+suite, so a producer bug fails the build instead of reaching whoever
+consumes the file months later.
+
+Consumers get the checks as a library too, so a tool knows whether to trust
+a file before relying on it, and can go from a template or choice to a
+source location. The examples it is tested against cover what breaks naive
+implementations: interfaces, contract keys, several packages at once, and
+two versions of the same package.
 
 #### E. The tooling that uses it
 
@@ -295,22 +311,32 @@ toolchain.
   whether to accept delivery through a documented alternative distribution
   instead. We do not treat an open pull request as delivery.
 
-### Milestone 3: Reader library and examples
+### Milestone 3: Verification and the reader library
 
 **Estimated Delivery:** 4 weeks after Milestone 2 acceptance<br>
-**Focus:** Make the metadata usable by any tool, not just ours.
+**Focus:** Make the metadata provably correct, and usable by any tool.
 
 **Deliverables:**
 
-- Open-source reader and validator library and command-line tool.
+- `dpm debug-info verify`, checking shape, internal consistency, and
+  agreement with the DAR and the source files, with machine-readable
+  output for CI.
+- The same checks inside `damlc` behind a flag, run over the example
+  packages in the compiler test suite.
+- Open-source reader library that resolves a template or choice to a
+  source location.
 - Example Daml packages covering interfaces, contract keys, multi-package
   builds, and package upgrades.
 - Documentation for tool authors.
 
 **Acceptance Criteria:**
 
-- The library accepts every valid example and rejects deliberately broken
-  ones, including stale sources and mismatched package ids.
+- The verifier accepts every valid example and rejects deliberately
+  corrupted ones: stale sources, a mismatched package id, a span outside
+  its file, an unresolved reference, and an availability label that claims
+  more than the rules allow.
+- A producer bug introduced on purpose is caught by the compiler-side
+  check before the file is written.
 - Someone who is not us can go from a template or choice name to the right
   source line using only the published library and documentation.
 
@@ -427,17 +453,17 @@ do.
 - **The format misses something real.** The specification is not frozen
   until maintainers have reviewed it, and the prototype already covers real
   packages, so gaps show up as concrete cases rather than as opinions.
-- **Tools overstate what they know.** The value availability rules are part
-  of the specification and are checked by the reader library, so a tool
-  that claims a value it cannot have fails validation.
+- **Tools overstate what they know.** The value availability rules are
+  part of the specification and are enforced by the verifier, so a file
+  that claims a value it cannot have fails before any tool reads it.
 
 ---
 
 ## Maintenance
 
 Everything we produce is open source under Apache-2.0. Walnut maintains the
-specification, the reader library, `dpm debug`, and the source-level
-features in `dpm trace`. Once the compiler changes are merged, they are maintained in
+specification, the verifier and reader library, `dpm debug`, and the
+source-level features in `dpm trace`. Once the compiler changes are merged, they are maintained in
 `digital-asset/daml` like the rest of the compiler, which is the point of
 upstreaming them.
 
