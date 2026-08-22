@@ -2,7 +2,7 @@
 
 **Author:** [Walnut](https://walnut.dev)<br>
 **Status:** Draft<br>
-**Created:** 2026-08-15<br>
+**Created:** 2026-08-19<br>
 **Label:** daml-tooling<br>
 **Champion:** Need Champion<br>
 
@@ -10,21 +10,56 @@
 
 ## Abstract
 
-Walnut proposes a versioned debug metadata format for Daml packages, together
-with the compiler support to emit it and the tooling to consume it.
+When a Daml workflow fails on Canton, the developer sees an error message
+and a package id. They do not see which line of Daml failed, which values
+reached it, or how execution got there. The compiler knows all of this, but
+nothing carries it from the compiler to the tools developers actually use.
 
-The goal is to give Daml/Canton developer tools a stable, portable way to map
-a compiled package back to its source: which files produced it, which spans
-correspond to which definitions, where it can fail, and which values a tool
-can actually show. The first consumer is the approved
+Walnut proposes to fix that. We will define a debug metadata format for
+Daml, make the Daml compiler emit it, and make our Canton debugging tools
+use it. The metadata maps a compiled package back to its source code, so a
+tool can point at the exact line that failed instead of guessing.
+
+We are already building the tools that need this. The Development Fund
+approved our
 [DPM Trace Transaction Visualization](./dpm-trace-visualization.md)
-proposal, which names this work as its planned "Compiler Source Metadata"
-follow-on. Test, coverage, and explorer tools can build on the same
-contract.
+proposal, and we are building `dpm trace` and `dpm debug` now. This
+metadata is what turns them from transaction viewers into real source-level
+debugging tools.
 
-The first version of the format, `daml-debug-info/v1`, is specified
-in [Appendix A](#appendix-a-daml-debug-infov1-draft-specification) of this
-document and is backed by a working reference implementation.
+---
+
+## What we will build
+
+Five things, one per milestone:
+
+1. **The format.** A published, versioned specification for Daml debug
+   metadata, plus a JSON Schema so tools can check a file automatically.
+   Appendix A is the current draft, written against a working prototype.
+2. **Compiler support.** `damlc` emits the metadata when asked, merged into
+   the official Daml repository so every Daml developer has it.
+3. **A runtime trace.** Daml Script writes a log of what a test run did and
+   where in the source each step happened, so a debugger can replay it.
+4. **A reader library.** Code that loads the metadata, verifies it, and
+   answers "which source line is this?", with example Daml packages we test
+   against.
+5. **Source-level debugging in our Canton tools.** `dpm trace` and
+   `dpm debug` read the metadata, so developers get source lines and
+   honest values instead of raw ledger events.
+
+## What we will not build
+
+The debugging tools themselves are not in this request. `dpm trace` and
+`dpm debug` are already funded by our approved DPM Trace proposal, and item
+5 above is only the work of teaching them to read the new metadata.
+
+We are not building an IDE debugger or a VS Code extension, and we are not
+building a hosted registry of Daml source code.
+
+We are also not changing the Daml interpreter. One small interpreter change
+would allow stepping expression by expression inside a choice body. We
+describe it in Appendix A.10 so it is on record, but it belongs to a later
+proposal.
 
 ---
 
@@ -32,501 +67,400 @@ document and is backed by a working reference implementation.
 
 ### 1. Objective
 
-Create a versioned Daml debug metadata standard, upstream its emission
-paths, and validate it with independent consumers.
+Give Daml developers accurate, source-level error messages and debugging.
 
-The first version targets Daml SDK 3.x packages (Daml-LF 2.1 and later) and
-answers these questions for any package:
+To do that, the metadata has to answer four questions about any compiled
+package:
 
-- Which source files produced this package, and which hashes prove a local
-  checkout matches it?
-- Which definitions and Daml-LF references correspond to which source
-  spans?
-- Which values can a tool populate from transaction data, and which need
-  interpreter support and must not be claimed by trace-only tools?
-- Which failure sites exist, and how can a failed completion be joined back
-  to one of them?
+- Which source files produced it, and do the files on my disk still match?
+- Which line of source does each template, choice, and expression come
+  from?
+- Which values may a tool show, and which values does it not have?
+- Where can this package fail, so a failure can be traced back to the line
+  that caused it?
 
-The result is a public schema and reference tooling.
+The format and the tooling are public and open source, so any Daml tool can
+use them. We are building the first user ourselves.
 
 ### 2. Motivation
 
-Daml and Canton already provide most of the raw material. Participants
-expose authorized, participant-scoped updates and completions. DARs and
-DALFs identify the packages being interpreted. Daml-LF carries source
-location information, and `damlc inspect`, package manifests, and local
-source trees can fill in hints.
+Debugging Daml today is harder than it should be. A failed submission
+returns a status and a message. Finding the cause means searching the
+source for the error text, which breaks down as soon as two assertions
+share a message or a message is built at runtime. Nothing tells a developer
+which line ran, in which package version, with which values.
 
-What is missing is a contract. A tool builder today reconstructs intent by
-combining package ids, local paths, source spans, text search, Daml Script
-output, error strings, and transaction trees. That breaks in predictable
-ways. Absolute paths leak into reports. Source matching fails when the
-package source is not local. A dozen identical assertion strings map to a
-dozen possible locations. Tools overstate what they can replay, because
-transaction data contains no interpreter state. Nothing can be compared
-across SDK versions, and every debugger, test reporter, and explorer ends
-up inventing its own source map.
+Everything needed to fix this already exists inside the compiler. Daml-LF
+carries source locations, and the compiler knows which file every
+definition came from. That information is simply thrown away before it
+reaches any tool.
 
-Other ecosystems solved this with explicit debug metadata formats: DWARF
-for native toolchains, PDB/CodeView on Windows, source maps for JavaScript,
-ETHDebug in EVM tooling. Daml needs its own, adapted to Canton privacy and
-Daml-LF semantics.
+Every serious language toolchain solves this the same way, by writing debug
+metadata next to the compiled artifact: DWARF for native code, source maps
+for JavaScript, ETHDebug for EVM contracts. Daml has no equivalent yet. The
+result is that each Canton tool, including ours, has to guess at source
+locations, and different tools guess differently.
+
+The value is straightforward. Clear error messages that name a file and a
+line. A debugger that steps through Daml source instead of ledger events.
+Test and coverage reports that point at real code. Less time spent guessing
+why a workflow failed.
 
 ### 3. Implementation Mechanics
 
-The proposal has five technical workstreams.
+#### A. The format
 
-#### A. Debug Metadata Schema
+We publish `daml-debug-info/v1` as a versioned specification with a JSON
+Schema. A metadata file describes one compiled package: its source files
+and their hashes, the source span of every template, choice, interface and
+value, the Daml-LF references that tie those back to ledger data, the
+places the package can fail, and step markers a debugger can walk.
 
-Define `daml-debug-info/v1` as a versioned schema. The concrete encoding is
-human-readable JSON with a machine-checkable JSON Schema validator. A future
-protobuf encoding can be added without changing the conceptual model.
+It also records which values a tool is allowed to show. Some values are in
+the transaction and any entitled party can see them. Others exist only
+inside the interpreter and never appear in ledger data. The format labels
+each one, so tools can show what they have and say plainly when they do not
+have something, instead of inventing it.
 
-The schema includes:
+Appendix A is the full draft, backed by a working prototype
+([walnuthq/daml](https://github.com/walnuthq/daml/tree/feature/debug-info)).
 
-- `package` and `producer`: package id, package name and version, Daml-LF
-  and SDK versions, emitting tool, and feature flags.
-- `sources`: package-relative paths, SHA-256 hashes, the module-to-file
-  mapping, and a record of modules that could not be mapped.
-- `spans` and `symbols`: source spans for definitions and located
-  expressions, and the templates, choices, interfaces, and values they
-  belong to, each with its Daml-LF reference.
-- `valueSlots`: value locations a tool may try to populate, each labeled
-  `transaction-visible` or `interpreter-only`.
-- `failureSites`: assertion, abort, precondition, and `failWithStatus`
-  sites with spans and statically known messages or error ids.
-- `steps`: deterministic source-level step descriptors.
+#### B. Compiler support
 
-[Appendix A](#appendix-a-daml-debug-infov1-draft-specification) is the
-complete specification, including producer invariants, position semantics,
-and validation rules. The schema will be reviewed with Daml/Canton
-maintainers before it is declared stable, and the first implementation is
-marked experimental until then.
+`daml build --experimental-debug-info` writes the metadata next to the
+compiled DAR, and optionally inside it, where existing tools ignore it.
 
-#### B. Compiler Emission
+The flag never changes the compiled package. A package built with it has
+the same package id as one built without it, which is what makes the
+metadata safe to trust: it describes exactly the artifact you deploy. We
+prove this with a test that builds both ways and compares package ids.
 
-Upstream debug metadata emission in the Daml compiler.
+Two small fixes to the compiler are needed first. Source locations for
+choices are currently dropped during compilation, so no tool can point at a
+choice body. Both fixes are useful on their own, because they also improve
+Daml stack traces for everyone, so we send them upstream as separate pull
+requests before this proposal is voted on.
 
-The emission is strictly additive: no Daml-LF semantic change, no Canton
-protocol or node change, no mandatory runtime overhead.
+#### C. Runtime trace
 
-One rule is central, and Appendix A.2 makes it binding:
-turning on metadata emission does not change the compiled Daml-LF output. A
-package built with the flag has the same package id as one built without it,
-so metadata from a debug build describes the exact artifact that gets
-deployed. The upstream contribution includes a CI test for this package-id
-equality.
+`daml script --debug-trace-file <file>` writes a line-by-line log of a test
+run: which script started, what it submitted, which contracts were created
+and exercised, what was traced, and where each of those happened in the
+source. A debugger replays the log to step through a test.
 
-The flag is `daml build --experimental-debug-info`. It writes a sidecar
-file next to the DAR and an optional DAR member under
-`META-INF/daml-debug-info/` that existing tools ignore, both byte-identical
-(Appendix A.1). Source paths are package-relative, and absolute local paths
-are never emitted.
+The log covers everything Daml Script can see. Stepping expression by
+expression inside a choice body needs the interpreter change described in
+Appendix A.10, which is not in this proposal.
 
-Two small compiler fixes are prerequisites for choice-level debugging
-(Appendix A.11). They go to `digital-asset/daml` as standalone pull
-requests ahead of this proposal's review.
+#### D. Reader library and examples
 
-#### C. Runtime Debug Trace
+A small open-source library and command-line tool that reads a metadata
+file and checks it is trustworthy before anything relies on it: that it
+matches the package, that the source files on disk are the ones that were
+compiled, that the spans point inside those files, and that no absolute
+paths from someone's laptop leaked into it. Given a template or choice, it
+returns the source location.
 
-Extend the Daml Script runner with an opt-in runtime debug trace:
+Any tool that wants to use the metadata starts here instead of writing its
+own parser. It ships with example Daml packages covering the cases that
+break naive implementations, including interfaces, contract keys, several
+packages at once, and two versions of the same package.
 
-```bash
-daml script --debug-trace-file <file> ...
-```
+#### E. Using it in our tools
 
-The runner writes one JSON object per line: script start and end, script
-questions with call-stack locations, submissions, and the ledger events the
-run observed. Positions use the same conventions as the metadata, so trace
-events join against spans and steps. The full contract is Appendix A.9.
+We wire the metadata into the tools funded by our approved
+[DPM Trace proposal](./dpm-trace-visualization.md):
 
-This workstream covers the Daml Script layer only. Expression-level stepping
-inside choice bodies needs one additional hook in the Speedy interpreter. That
-hook is out of scope here: Appendix A.10 reserves its shape so a follow-up
-proposal can add it without changing the trace contract.
+- `dpm trace` shows the source line behind each transaction node, and when
+  a submission fails it points at the assertion that rejected it rather
+  than searching for the error text.
+- `dpm debug` steps through a Daml Script run in the source, showing the
+  values it has and labeling the ones it does not.
 
-#### D. Reader, Validator, and Test Corpus
-
-Build a reference reader and validator package and CLI implementing the
-consumer rules of Appendix A.12: schema and hash verification, span and
-availability conformance, byte-identical copies, path hygiene, and a
-dedicated diagnostic for line-ending mismatches.
-
-The test corpus covers creates and consuming exercises, nested exercises
-with child creates, controllers, observers and signatories, interfaces and
-interface choices, contract keys where the target LF version has them,
-assertion and `failWithStatus` sites, multi-module and multi-package
-layouts, and a package upgrade example with two versions of the same
-package.
-
-#### E. Consumer Integration: `dpm trace` and `dpm debug`
-
-Integrate the metadata into two consumers:
-
-- `dpm trace` (approved proposal): source diagnostics for failed completions
-  driven by `failureSites`, transaction tree source links, source links for
-  comparing prepared with committed transactions, and Daml Script test
-  reports.
-- `dpm debug`: source-level stepping over the runtime debug trace from
-  workstream C, with explicit value availability labels.
-
-This integration must preserve Canton's privacy model. If the
-participant-visible transaction does not contain a value, the tools must not
-invent it from source metadata. They may show the source span and explain
-that the value is `interpreter-only`.
+This is what proves the format works. If it cannot drive a real debugger,
+it is not good enough.
 
 ### 4. Architectural Alignment
 
-The design follows Canton architecture:
+Nothing here changes Canton. No protocol change, no node change, no change
+to how transactions are executed or what any party can see. The metadata
+describes code, not ledger data, and the tools that read it keep working
+through authorized participant APIs.
 
-- It respects participant-scoped visibility. Debug metadata maps code to
-  source and reveals no ledger data outside the requesting party's rights.
-- It is package-oriented, matching how Daml-LF and DARs are distributed.
-- It complements package upload and vetting. Vetting says a participant is
-  willing to process a package. Debug metadata says which source and spans
-  correspond to it.
-- It requires no changes to Canton consensus, synchronization, privacy, or
-  transaction semantics.
-
-Metadata is keyed by package id, so smart contract upgrades need no special
-handling: consumers resolve it by package id, never by package name. A
-participant resolving by name may execute a different version of a package
-than the developer expects, which is exactly why the format keys nothing on
-names.
-
-Nothing cryptographically binds a sidecar or DAR member to a DALF, since
-`META-INF` members are not part of the package id. Debug metadata is
-therefore advisory, trusted as much as its distribution channel. For
-packages a developer did not build, the strong check is to rebuild from
-source and compare package ids. The ledger itself never transports the
-metadata: Canton distributes DALFs, not DAR members, so counterparties
-cannot receive a package's debug info through the ledger. That protects
-privacy, and it also makes a registry for third-party packages the natural
-follow-on.
-
-The result is one contract for many tools instead of a single debugger or
-one vendor's trace format.
+The metadata belongs to a package and is keyed by package id, which is what
+makes it correct under smart contract upgrades: two versions of a package
+have different ids and different metadata, so a tool always resolves
+against the version that actually ran.
 
 ### 5. Backward Compatibility
 
-The first version is additive. Existing Daml applications compile and run
-unchanged, existing DAR consumers ignore metadata members they do not
-understand, and tools that do not know the format keep using today's
-package and source mechanisms.
-
-Embedding the metadata changes the DAR file hash (the zip bytes change) but
-never the package id, so workflows that pin DAR file hashes must pin the
-debug-enabled DAR. Schema evolution is versioned: consumers ignore unknown
-fields within a supported major version and reject unsupported major
-versions.
-
----
-
-## Non-Goals
-
-This proposal stops at the metadata contract. It does not fund an IDE
-debugger (no DAP adapter, no VS Code extension, no live breakpoints in
-Canton participants), a hosted source registry or Sourcify-style
-verification service, or changes to the Daml-LF interpreter (the stepping
-hook is reserved in Appendix A.10 for a follow-up). All of these are
-candidates for later proposals once the metadata contract is accepted.
+No backward compatibility impact. The metadata is new, optional, and
+written alongside the DAR rather than inside the package, so existing
+builds, tools, and deployments are unaffected.
 
 ---
 
 ## Milestones and Deliverables
 
-A working proof of concept already exists (see Reference Implementation
-Status below). The milestones are set beyond it, so no payment covers work
-the prototype already demonstrates. The funding goes to maintainer
-alignment, upstreaming, and independent validation.
-
-### Milestone 1: Maintainer-Aligned Schema and Upstream Groundwork
+### Milestone 1: Published specification and compiler fixes merged
 
 **Estimated Delivery:** 4 weeks from start<br>
-**Focus:** Get the specification reviewed by maintainers and the first
-upstream pull requests opened.
+**Focus:** Agree the format with Daml maintainers and land the groundwork
+in the official compiler.
 
-**Deliverables / Value Metrics:**
+**Deliverables:**
 
-- Public `daml-debug-info/v1` specification and machine-checkable JSON
-  Schema, published in a location agreed with maintainers (Appendix A is
-  the starting draft).
-- Versioning, position, and path-hygiene rules, the per-slot-kind
-  availability table (Appendix A.6), and the `failureSites` definition
-  (Appendix A.7).
-- The two compiler location fixes submitted to `digital-asset/daml` as
-  standalone pull requests, with DALF size and interpreter overhead
-  measurements on a large public package.
-- Review session with Daml/Canton maintainers and at least one ecosystem
-  tooling consumer.
+- The `daml-debug-info/v1` specification published, with a JSON Schema.
+- The two compiler location fixes merged into `digital-asset/daml`,
+  including measurements of their effect on package size and interpreter
+  speed.
+- A review of the format with Daml/Canton maintainers.
 
 **Acceptance Criteria:**
 
-- A maintainer or delegated reviewer confirms the schema is plausible for
-  compiler emission and covers template, choice, choice argument, payload
-  field, and failed assertion spans.
-- The schema distinguishes transaction-visible from interpreter-only values
-  per slot kind.
-- The two compiler fix pull requests are open upstream and under review.
+- The specification is public and covers, at minimum, templates, choices,
+  choice arguments, payload fields, and failure sites.
+- Daml maintainers have reviewed the format and agree it is emittable by
+  the compiler.
+- The two compiler fixes are **merged** into `digital-asset/daml`.
 
-### Milestone 2: Compiler and Runtime Emission Upstreaming
+### Milestone 2: Compiler and Daml Script emission merged
 
-**Estimated Delivery:** 6 weeks after Milestone 1 acceptance<br>
-**Focus:** Get the metadata and runtime trace emission into the upstream
+**Estimated Delivery:** 8 weeks after Milestone 1 acceptance<br>
+**Focus:** Ship metadata emission and the runtime trace in the official
 toolchain.
 
-**Deliverables / Value Metrics:**
+**Deliverables:**
 
-- Metadata emission submitted to `digital-asset/daml` behind an
-  experimental flag (or through an emission path maintainers prefer), with
-  a CI test that the package id is identical with and without the flag
-  (the Appendix A.2 invariant).
-- Runtime debug trace emission in the Daml Script runner (workstream C),
-  submitted the same way.
-- Path normalization, source hashes, `unmappedModules`, `failureSites`
-  emission, and span mapping for modules, templates, choices, and fields.
-- Documentation for generating metadata and traces.
+- `damlc` emits `daml-debug-info/v1` behind a flag.
+- Daml Script writes the runtime debug trace.
+- The test proving the flag does not change the compiled package.
+- Documentation for both.
 
 **Acceptance Criteria:**
 
-- A representative package built with the upstream-submitted path produces
-  a complete `daml-debug-info/v1` artifact with no absolute paths, and
-  builds without the flag are unaffected.
-- The package-id invariance test passes in CI.
-- The upstream pull requests are under active review, or an alternative
-  distribution path agreed with maintainers is documented and delivered.
+- Both changes are **merged** into `digital-asset/daml`.
+- A developer can build any Daml package with a released or nightly build
+  of the compiler and get valid metadata, with no absolute paths and no
+  change to the package id.
+- If Daml maintainers decline the upstream change, the committee decides
+  whether to accept delivery through a documented alternative distribution
+  instead. We do not treat an open pull request as delivery.
 
-### Milestone 3: Reader, Validator, and Corpus
+### Milestone 3: Reader library and examples
 
 **Estimated Delivery:** 4 weeks after Milestone 2 acceptance<br>
-**Focus:** Make the metadata consumable and checkable by independent tools.
+**Focus:** Make the metadata usable by any tool, not just ours.
 
-**Deliverables / Value Metrics:**
+**Deliverables:**
 
-- Open-source reader and validator library and CLI, with diagnostics for
-  stale hashes (including line-ending mismatches), span and availability
-  violations, sidecar/DAR-member divergence, unsupported versions, and
-  non-portable paths.
-- Test corpus covering the workstream D constructs, including multi-package
-  and upgrade examples, plus forward-compatibility tests for unknown
-  fields.
+- Open-source reader and validator library and command-line tool.
+- Example Daml packages covering interfaces, contract keys, multi-package
+  builds, and package upgrades.
 - Documentation for tool authors.
 
 **Acceptance Criteria:**
 
-- The validator accepts all valid corpus artifacts and rejects
-  intentionally corrupted ones.
-- A tool author can resolve a package, module, template, or choice
-  reference to a source span without Walnut-specific code.
+- The library accepts every valid example and rejects deliberately broken
+  ones, including stale sources and mismatched package ids.
+- Someone who is not us can go from a template or choice name to the right
+  source line using only the published library and documentation.
 
-### Milestone 4: Consumer Integration, Adoption, and Ecosystem Validation
+### Milestone 4: Source-level debugging in our tools, and adoption
 
 **Estimated Delivery:** 5 weeks after Milestone 3 acceptance<br>
-**Focus:** Prove the standard improves real Canton developer workflows.
+**Focus:** Prove it works by shipping it to Canton developers.
 
-**Deliverables / Value Metrics:**
+**Deliverables:**
 
-- `dpm trace` loads sidecar or DAR-embedded metadata and uses
-  `failureSites` for failed-completion diagnostics, with labeled match
-  quality (exact error id, exact message, or heuristic).
-- Source-linked transaction, compare, and test-report output.
-- `dpm debug` source-level stepping over the workstream C runtime trace,
-  labeling transaction-visible and interpreter-only values.
-- Example package and walkthrough from compiler emission to consumer
-  output.
-- Feedback from at least three Canton developers or organizations, and
-  follow-up issues for the Speedy location hook.
+- `dpm trace` shows source locations for transactions and failed
+  submissions.
+- `dpm debug` steps through Daml Script runs in the source.
+- A worked example and walkthrough, from building a package to debugging a
+  failure in it.
+- Feedback from at least three Canton developers or teams outside Walnut.
 
 **Acceptance Criteria:**
 
-- `dpm trace` resolves failed-completion diagnostics without text-search
-  heuristics when `failureSites` metadata is available.
-- Both tools refuse to show values absent from participant-visible data or
-  the local trace, labeling them interpreter-only.
-- At least two independent testers confirm the metadata-backed source links
-  beat the pre-metadata workflow.
+- A developer can take a failing Daml workflow and see the exact line that
+  rejected it, without searching the source for the error message.
+- `dpm debug` steps through a Daml Script run showing source and values,
+  and says so when a value was not captured rather than guessing.
+- At least two testers outside Walnut confirm this is better than
+  debugging without it.
 
 ---
 
 ## Acceptance Criteria
 
-The Tech & Ops Committee can evaluate completion based on:
-
-- A public, versioned specification with a machine-checkable schema,
-  reviewed by maintainers.
-- Emission paths submitted upstream, with the package-id invariance tested
-  in CI.
-- A reader, validator, and test corpus that independent tools can use.
-- `dpm trace` and `dpm debug` integrations that improve real developer
-  workflows, with independent ecosystem feedback.
-
-The value to the ecosystem is not the existence of a JSON file. The value is
-that source-aware Daml/Canton tools can share one stable metadata contract
-instead of building incompatible heuristics.
+Each milestone above carries its own criteria, and those are the bar. Two
+apply throughout: the compiler work is delivered by being merged into the
+official Daml repository, not by being proposed, and every deliverable is
+open source under Apache-2.0.
 
 ---
 
 ## Funding
 
-**Total Funding Request:** 1,600,000 Canton Coin (CC)
+**Total Funding Request:** USD [amount to confirm], paid in Canton Coin.
 
-Each payment is tied to something the committee can inspect, not to
-internal activity.
+Milestones are priced in US dollars. When a milestone is accepted, the
+payment is made in Canton Coin at the CC/USD rate at the time of payment,
+so the amount of CC varies and the value delivered does not. This removes
+the price risk that a fixed CC amount puts on both sides, since CC can move
+sharply in a week and this project runs for months.
 
 ### Payment Breakdown by Milestone
 
-- Milestone 1, Maintainer-Aligned Schema and Upstream Groundwork: 250,000 CC
-  upon committee acceptance.
-- Milestone 2, Compiler and Runtime Emission Upstreaming: 500,000 CC upon
-  committee acceptance.
-- Milestone 3, Reader, Validator, and Corpus: 350,000 CC upon committee
-  acceptance.
-- Milestone 4, Consumer Integration, Adoption, and Ecosystem Validation:
-  500,000 CC upon committee acceptance and ecosystem validation.
-
-### Volatility Stipulation
-
-The expected duration is under six months if maintainer review is available
-during the design phase. If the scope expands into interpreter or runtime
-hooks, that will be split into a separate proposal rather than extending this
-one.
-
-Should the project timeline extend beyond six months due to
-Committee-requested scope changes, remaining milestones must be renegotiated
-to account for significant USD/CC price volatility.
+- Milestone 1, Published specification and compiler fixes merged:
+  USD [amount] on acceptance.
+- Milestone 2, Compiler and Daml Script emission merged:
+  USD [amount] on acceptance.
+- Milestone 3, Reader library and examples:
+  USD [amount] on acceptance.
+- Milestone 4, Source-level debugging in our tools, and adoption:
+  USD [amount] on acceptance.
 
 ---
 
 ## Co-Marketing
 
-Walnut can work with the Canton Foundation and Daml/Canton maintainers on a
-technical post about Daml debug metadata and Canton privacy boundaries, a
-demo of metadata-backed diagnostics and `dpm debug` stepping, and
-documentation for ecosystem tool authors.
+Walnut can work with the Canton Foundation on a technical post about how
+Daml debug metadata works, a demo showing a failing workflow debugged down
+to the line, and documentation for teams building Daml tools.
 
 ---
 
 ## Rationale
 
-### Why start with metadata instead of a full debugger?
+### Why put this in the compiler instead of working it out from source?
 
-A full source-level debugger needs runtime and interpreter hooks, breakpoint
-semantics, value capture policy, and careful privacy review. Metadata is the
-lower-risk foundation that every later tool needs anyway. It improves
-tracing, test reporting, and coverage work now, and it makes the later
-conversation about runtime hooks specific instead of hypothetical.
+Only the compiler knows which source produced which part of a package. Any
+tool working from the outside has to guess by matching text, and it guesses
+wrong exactly when it matters most: when two assertions share a message, or
+the source on disk is not the source that was built. Writing the answer
+down at compile time is what makes it reliable.
 
-### Why upstream instead of maintaining a fork?
+### Why get it merged upstream instead of shipping our own compiler?
 
-A debug format is only a shared contract if the compiler everyone already
-uses can emit it. A forked emitter would drift out of date and split the
-ecosystem, so Milestones 1 and 2 tie acceptance to upstream submission and
-maintainer review. The two prerequisite compiler
-fixes go upstream as standalone pull requests in any case, since they
-improve stack traces for every Daml user whatever happens to this proposal.
+A debug format is only useful if the compiler people already use emits it.
+A patched compiler that only we ship would be a fork nobody adopts, and
+would fall behind on the first SDK release. That is why Milestones 1 and 2
+are only accepted when the changes are merged into `digital-asset/daml`,
+and why the two prerequisite fixes go upstream on their own regardless of
+whether this proposal is funded.
 
-### Why use package-relative paths and hashes?
+### Why publish the format instead of keeping it internal?
 
-Daml packages move across machines, CI systems, validators, and
-organizations. Absolute local paths are not portable and can leak private
-machine details. Package-relative paths plus source hashes let tools verify
-source identity without committing to a developer's local filesystem layout.
-The specification also defines hashes at the byte level and requires a
-specific line-ending mismatch diagnostic, because checkouts with translated
-line endings are the most common cause of spurious hash failures in Solidity
-metadata verification.
+We would benefit either way, but the ecosystem only benefits if the format
+is public. Coverage tools, test reporters, profilers, and explorers all
+need the same source mapping. If we keep it private, every one of them
+either builds its own or does without.
 
-### Why a dedicated `failureSites` section?
+### Why record what a tool may and may not show?
 
-Failed completions carry a status and a message, not a source location.
-Without an indexed table of failure sites, tools must text-search source
-files for the message, which is ambiguous whenever messages repeat or are
-built dynamically. `failureSites` gives consumers an exact join key when
-`failWithStatus` error ids or static messages are used, and a clearly
-labeled weaker match otherwise. It also puts `failWithStatus` at the center
-of the failure model, matching Daml 3.x, where user-defined exceptions are
-deprecated.
-
-### Why integrate with `dpm trace` first?
-
-`dpm trace` is the approved consumer that already exercises the
-hard parts: participant-scoped updates, failed completions, prepared
-transactions, test reports, and source diagnostics. Integrating metadata
-there validates the schema against real workflows without requiring a new
-hosted product or IDE.
+Canton is private by design, and a debugger that quietly invents a value it
+cannot actually see is worse than one that shows nothing. Labeling each
+value as visible in the transaction or interpreter-only makes honesty
+something the format enforces rather than something each tool remembers to
+do.
 
 ---
 
 ## Risks and Mitigations
 
-- **Maintainer alignment:** review is Milestone 1, the schema is not frozen
-  before it, and the standalone fixes open the conversation with small,
-  useful changes. If upstreaming is declined, Milestone 2 falls back to a
-  distribution path agreed with maintainers.
-- **Overstating runtime values:** the availability table makes the correct
-  classification testable, and consumers must show a missing
-  interpreter-only value as missing rather than guessing it.
-- **Path and data leaks:** package-relative paths and hashes by default,
-  absolute paths rejected in strict mode, and runtime trace files
-  documented as sensitive.
-- **Scope creep:** runtime-hook findings become follow-up proposals, not
-  blockers for the metadata standard.
+- **Upstream review takes time.** Merging into `digital-asset/daml` is not
+  fully in our control. We open the two small fixes before this proposal is
+  voted on, so review starts early and maintainers can weigh in on the
+  approach before the larger changes arrive. Milestone 2 names the fallback
+  if they decline.
+- **The format misses something real.** The specification is not frozen
+  until maintainers have reviewed it, and the prototype already covers real
+  packages, so gaps show up as concrete cases rather than as opinions.
+- **Tools overstate what they know.** The value availability rules are part
+  of the specification and are checked by the reader library, so a tool
+  that claims a value it cannot have fails validation.
 
 ---
 
 ## Maintenance
 
-The specification will live in a maintainer-approved public location once
-accepted, and reference tooling is Apache-2.0 unless maintainers prefer
-another license. Walnut maintains the `dpm trace` and `dpm debug`
-integrations. Compiler emission ownership is a Milestone 1 discussion item.
+Everything we produce is open source under Apache-2.0. Walnut maintains the
+specification, the reader library, and the `dpm trace` and `dpm debug`
+integrations. Once the compiler changes are merged, they are maintained in
+`digital-asset/daml` like the rest of the compiler, which is the point of
+upstreaming them.
 
 ---
 
 ## About the Team
 
-Walnut builds blockchain debugging and observability tooling. The team has
-experience with compiler debug information, source mapping, transaction
-visualization, simulation, contract verification, and debugger UX across
-ecosystems including Starknet, Ethereum/Solidity (debug info generation in
-the official Solidity compiler, `solc`), and Arbitrum Stylus.
+Walnut has spent four years building debugging and observability tooling
+for blockchains, and we build it with the teams behind the platforms
+themselves:
+
+- **Canton.** The Development Fund approved our
+  [DPM Trace Transaction Visualization](./dpm-trace-visualization.md)
+  proposal, and we are building `dpm trace` and `dpm debug` now. This
+  proposal comes directly out of that work: we hit the missing metadata
+  while building the debugger.
+- **Starkware / Starknet.** We build the
+  [Walnut Starknet Debugger](https://walnut.dev/), covering debug info
+  generation, tracing, simulation, verification, and the hosted debugger
+  itself. Three-year partnership.
+- **Ethereum Foundation / Argot.** We own debug info generation in
+  [`solc`](https://github.com/argotorg/solidity), the official Solidity
+  compiler. One-year partnership, being extended.
+- **Arbitrum / Offchain Labs.**
+  [StylusDB](https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/cargo-stylus/docs/StylusDebugger.md),
+  the official debugger for Stylus.
+
+Debug info generation in a production compiler is the specific thing we
+have done before, in `solc` and in Starknet, and it is the specific thing
+this proposal asks for in Daml.
 
 ---
 
-## Reference Implementation Status
+## What already exists
 
-A working reference implementation of the `daml-debug-info/v1` schema
-exists and backs Appendix A. On branch `walnuthq/daml@feature/debug-info`,
-`daml build --experimental-debug-info` emits the metadata from the compiled
-Daml-LF package (sidecar JSON plus a DAR member), and
-`daml script --debug-trace-file` emits the Appendix A.9 runtime trace. The
-metadata is derived from the compiled package, never from textual scanning
-of sources. Two compiler fixes make choice-level debugging possible
-(Appendix A.11), and Walnut will submit both to `digital-asset/daml` as
-standalone pull requests ahead of this proposal's review, with DALF size
-and interpreter overhead measurements. In `walnuthq/dpm-trace`, `dpm trace`
-consumes the metadata for source links and `dpm debug` steps through
-runtime traces. Appendix A.13 lists what the implementation emits today
-versus what is Milestone 2 work.
+We built a working prototype before asking for funding, so this proposal
+describes something we have already proven rather than something we hope
+will work. In
+[walnuthq/daml](https://github.com/walnuthq/daml/tree/feature/debug-info):
+
+- `daml build --experimental-debug-info` emits the metadata described in
+  Appendix A, taken from the compiled package rather than by reading source
+  text.
+- The two compiler fixes that restore source locations for choices.
+- `daml script --debug-trace-file` writes the runtime trace.
+
+In [walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace), `dpm trace`
+already reads the metadata for source links and `dpm debug` steps through
+the traces.
+
+Appendix A.13 says exactly which parts of the specification the prototype
+emits today and which parts are Milestone 2 work.
 
 ---
 
 ## References
 
-- Approved consumer proposal:
+- Approved proposal this builds on:
   [DPM Trace Transaction Visualization](./dpm-trace-visualization.md)
-- `dpm trace` proof of concept:
-  <https://github.com/walnuthq/dpm-trace>
-- Reference implementation branch:
-  <https://github.com/walnuthq/daml/tree/feature/debug-info>
+- Prototype compiler and runtime:
+  [github.com/walnuthq/daml (branch feature/debug-info)](https://github.com/walnuthq/daml/tree/feature/debug-info)
+- Prototype tooling:
+  [github.com/walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace)
 
 ---
 
 ## Appendix A: `daml-debug-info/v1` draft specification
 
-This appendix is the draft specification, backed by the reference
-implementation. During Milestone 1 it moves to a maintainer-agreed public
-location and gains a machine-checkable JSON Schema. MUST, SHOULD, and MAY
+This appendix is the draft specification. It is backed by the working
+prototype in
+[walnuthq/daml](https://github.com/walnuthq/daml/tree/feature/debug-info),
+not written from theory. During Milestone 1 it moves to a public location
+agreed with Daml maintainers and gains a machine-checkable JSON Schema. MUST, SHOULD, and MAY
 are used as in RFC 2119, and A.13 records where the implementation still
 differs from this text.
 
@@ -687,7 +621,7 @@ in A.2 and apply to every `start`/`end` pair in the document.
 
 ### A.6 `valueSlots` and availability
 
-`availability` is the privacy-honesty contract. A `transaction-visible`
+`availability` says what a tool is allowed to show. A `transaction-visible`
 slot is populatable from participant-visible transaction data by a party
 entitled to see the event. An `interpreter-only` slot is observable only
 with interpreter or runtime support: trace-only tools MUST NOT claim it
@@ -769,7 +703,7 @@ points).
   precondition, key) have spans (A.4) but no steps in v1, so stepping
   through a create does not stop inside them.
 
-### A.9 Runtime debug-trace contract (JSONL)
+### A.9 Runtime debug-trace format (JSONL)
 
 `daml script --debug-trace-file <file>` writes one JSON object per line.
 Consumers MUST ignore unknown `event` kinds and unknown fields. Events are
@@ -830,7 +764,7 @@ stepping *within* a choice body needs one additional Speedy interpreter
 hook, for which this specification reserves the shape: a
 `MachineLogger.onLocation(location: Location): Unit` method with a default
 no-op body, called from the machine's `SELocation` handling and gated so
-the disabled cost is one branch. With that hook, the same JSONL contract
+the disabled cost is one branch. With that hook, the same JSONL format
 gains `{"event":"step","location":{LOC}}` lines that join against `steps`.
 This is follow-up work, per this proposal's scoping.
 
