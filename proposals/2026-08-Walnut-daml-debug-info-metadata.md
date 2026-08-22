@@ -471,9 +471,12 @@ themselves:
   [Walnut Starknet Debugger](https://walnut.dev/), covering debug info
   generation, tracing, simulation, verification, and the hosted debugger
   itself. Three-year partnership.
+- **Miden.** We build the compiler and the debugger.
 - **Ethereum Foundation / Argot.** We own debug info generation in
   [`solc`](https://github.com/argotorg/solidity), the official Solidity
   compiler. One-year partnership, being extended.
+- **Tempo.** We work with them on solar, a Solidity compiler written in
+  Rust.
 - **Arbitrum / Offchain Labs.**
   [StylusDB](https://github.com/OffchainLabs/stylus-sdk-rs/blob/main/cargo-stylus/docs/StylusDebugger.md),
   the official debugger for Stylus.
