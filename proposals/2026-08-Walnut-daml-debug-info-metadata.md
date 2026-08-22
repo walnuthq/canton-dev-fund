@@ -222,9 +222,7 @@ The one real difference is where the trap comes from. In C++ the operating
 system provides it, so the binary is untouched and the debugger stops the
 process from outside. Canton has no equivalent, and adding one would mean
 changing the Daml interpreter, the component that computes transactions on
-every validator. We are not proposing that. Nobody wants a debugger that
-can pause a live ledger, and the review burden on a consensus-critical
-component would be out of proportion to what it buys.
+every validator. We are not proposing that.
 
 So the compiler plants the traps instead, which is why interactive
 debugging uses a debug build. A debug build has a different package id from
