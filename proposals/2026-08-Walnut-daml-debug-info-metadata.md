@@ -118,7 +118,7 @@ runtime trace format, and what a consumer must validate.
 
 #### B. Compiler support
 
-`daml build --experimental-debug-info` writes the metadata next to the
+`daml build --debug-info` writes the metadata next to the
 compiled DAR, and optionally inside it, where existing tools ignore it.
 
 The flag never changes the compiled package. A package built with it has
@@ -211,10 +211,11 @@ The pieces line up:
 
 | C++ | Daml, in this proposal |
 | --- | --- |
-| DWARF file beside the binary | `daml-debug-info/v1` beside the DAR |
-| compiling with `-g` | `daml build --experimental-debug-info` |
-| a build the debugger can stop inside | `daml build --debug`, which adds step markers |
-| the trap firing | a marker calling the interpreter's existing logging callback |
+| the DWARF file written beside the binary | `daml-debug-info/v1` written beside the DAR |
+| `-g`, which emits that debug info | `daml build --debug-info` |
+| `-O0`, which keeps the program steppable | `daml build --debug`, which plants a marker at every source location |
+| the breakpoint instruction the debugger patches in | one of those markers |
+| the process stopping when it hits that instruction | the marker calling the interpreter's logging callback, which the debugger holds open |
 | `gdb` or `lldb` | `dpm debug` |
 
 The one real difference is where the trap comes from. In C++ the operating
@@ -507,7 +508,7 @@ describes something we have already proven rather than something we hope
 will work. In
 [walnuthq/daml](https://github.com/walnuthq/daml/tree/feature/debug-info):
 
-- `daml build --experimental-debug-info` emits the metadata, taken from
+- `daml build --debug-info` emits the metadata, taken from
   the compiled package rather than by reading source text.
 - The two compiler fixes that restore source locations for choices.
 - `daml script --debug-trace-file` writes the runtime trace.
