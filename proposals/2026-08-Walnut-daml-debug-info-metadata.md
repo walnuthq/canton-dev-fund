@@ -390,7 +390,7 @@ sharply in a week and this project runs for months.
   USD [amount] on acceptance.
 - Milestone 2, Compiler and Daml Script emission merged:
   USD [amount] on acceptance.
-- Milestone 3, Reader library and examples:
+- Milestone 3, Verification and the reader library:
   USD [amount] on acceptance.
 - Milestone 4, Source-level debugging in our tools, and adoption:
   USD [amount] on acceptance.
