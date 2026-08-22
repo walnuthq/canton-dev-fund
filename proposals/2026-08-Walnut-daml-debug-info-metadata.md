@@ -32,8 +32,6 @@ source.
 
 ## What we will build
 
-Five things, one per milestone:
-
 1. **The format.** A published, versioned specification for Daml debug
    metadata, plus a JSON Schema so tools can check a file automatically.
    Appendix A is the current draft, written against a working prototype.
