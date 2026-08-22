@@ -415,37 +415,16 @@ to the line, and documentation for teams building Daml tools.
 
 ## Rationale
 
-### Why put this in the compiler instead of working it out from source?
-
-Only the compiler knows which source produced which part of a package. Any
-tool working from the outside has to guess by matching text, and it guesses
-wrong exactly when it matters most: when two assertions share a message, or
-the source on disk is not the source that was built. Writing the answer
-down at compile time is what makes it reliable.
-
-### Why get it merged upstream instead of shipping our own compiler?
-
-A debug format is only useful if the compiler people already use emits it.
-A patched compiler that only we ship would be a fork nobody adopts, and
-would fall behind on the first SDK release. That is why Milestones 1 and 2
-are only accepted when the changes are merged into `digital-asset/daml`,
-and why the two prerequisite fixes go upstream on their own regardless of
-whether this proposal is funded.
-
-### Why publish the format instead of keeping it internal?
-
-We would benefit either way, but the ecosystem only benefits if the format
-is public. Coverage tools, test reporters, profilers, and explorers all
-need the same source mapping. If we keep it private, every one of them
-either builds its own or does without.
-
-### Why record what a tool may and may not show?
-
-Canton is private by design, and a debugger that quietly invents a value it
-cannot actually see is worse than one that shows nothing. Labeling each
-value as visible in the transaction or interpreter-only makes honesty
-something the format enforces rather than something each tool remembers to
-do.
+The reason to fund this is what it unlocks in the tools around it.
+`dpm trace` can already show what a transaction did, and with this metadata
+it shows which line of Daml did it. The test coverage tool proposed as
+[DamlCov](https://github.com/canton-foundation/canton-dev-fund/pull/323)
+could report which Daml lines a test suite exercised instead of which
+packages it touched. Profilers, test reporters, and explorers all need the
+same source mapping, and today each of them either invents its own or does
+without, and none of them can do better than a text search. Putting the
+answer in the compiler once means every Canton tool gets the same answer,
+and gets it right.
 
 ---
 
