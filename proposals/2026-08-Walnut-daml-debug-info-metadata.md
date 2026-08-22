@@ -491,9 +491,7 @@ this proposal asks for in Daml.
 
 ## What already exists
 
-We built a working prototype before asking for funding, so this proposal
-describes something we have already proven rather than something we hope
-will work. In
+We built the prototype before asking for funding. In
 [walnuthq/daml](https://github.com/walnuthq/daml/tree/feature/debug-info):
 
 - `daml build --debug-info` emits the metadata, taken from
