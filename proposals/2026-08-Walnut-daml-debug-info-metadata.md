@@ -447,10 +447,9 @@ do.
   before this proposal is voted on, so review starts early and maintainers
   can weigh in on the approach long before the larger changes arrive.
   Every change we send is small, additive, off by default, and covered by
-  tests, which is the shape most likely to be accepted. Digital Asset also
-  asked for this work: the review of our DPM Trace proposal requested a
-  separate proposal explaining the runtime changes that make debugging
-  possible, which is what section 4 does.
+  tests, which is the shape most likely to be accepted, and the two
+  prerequisite fixes stand on their own merits because they improve Daml
+  stack traces for everyone.
 - **The format misses something real.** The specification is not frozen
   until maintainers have reviewed it, and the prototype already covers real
   packages, so gaps show up as concrete cases rather than as opinions.
@@ -510,7 +509,7 @@ will work. In
 - The two compiler fixes that restore source locations for choices.
 - `daml script --debug-trace-file` writes the runtime trace.
 
-In [walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace) we have
+In [walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace/tree/feature/debug-info) we have
 prototyped both sides of the tooling: `dpm trace` reading the metadata for
 source links, and an early `dpm debug` stepping through the traces.
 
@@ -528,4 +527,4 @@ emits today and which parts are Milestone 2 work.
 - Prototype compiler and runtime:
   [github.com/walnuthq/daml (branch feature/debug-info)](https://github.com/walnuthq/daml/tree/feature/debug-info)
 - Prototype tooling:
-  [github.com/walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace)
+  [github.com/walnuthq/dpm-trace (branch feature/debug-info)](https://github.com/walnuthq/dpm-trace/tree/feature/debug-info)
