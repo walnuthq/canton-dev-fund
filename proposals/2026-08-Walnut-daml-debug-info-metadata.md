@@ -32,17 +32,20 @@ source.
 
 ## What we will build
 
-1. **The format.** A published, versioned specification for Daml debug
-   metadata, plus a JSON Schema so tools can check a file automatically.
+1. **The format.** A published specification for Daml debug metadata,
+   carrying its own version so a consumer knows exactly which revision it
+   is reading, with a JSON Schema so tools can check a file
+   automatically.
    The [current draft](https://github.com/walnuthq/daml/blob/feature/debug-info/sdk/compiler/damlc/daml-debug-info-v1.md) is written against a working prototype.
 2. **Compiler support.** `damlc` emits the metadata when asked, and can
    produce a debug build that a debugger is able to stop inside. Both go
    into the official Daml repository.
 3. **A runtime trace.** Daml Script writes a log of what a run did and
    where in the source each step happened.
-4. **A verifier and a reader library.** A tool that proves a metadata
-   file is correct, and code that loads it and answers "which source line
-   is this?", with example Daml packages we test against.
+4. **A verifier and a reader library.** `dpm debug-info verify`, which
+   proves a metadata file is correct, and code that loads it and answers
+   "which source line is this?", with example Daml packages we test
+   against.
 5. **The tooling that uses it.** Source-level views added to `dpm trace`,
    whose transaction inspection and visualization are already funded by the
    approved DPM Trace proposal, and `dpm debug`, a new command-line
@@ -508,10 +511,12 @@ will work. In
   the compiled package rather than by reading source text.
 - The two compiler fixes that restore source locations for choices.
 - `daml script --debug-trace-file` writes the runtime trace.
+- The draft specification and its JSON Schema.
 
 In [walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace/tree/feature/debug-info) we have
-prototyped both sides of the tooling: `dpm trace` reading the metadata for
-source links, and an early `dpm debug` stepping through the traces.
+prototyped the tooling: `dpm trace` reading the metadata for source links,
+an early `dpm debug` stepping through the traces, and `dpm debug-info
+verify` checking an artifact against the specification.
 
 The specification's last section says exactly which parts the prototype
 emits today and which parts are Milestone 2 work.
