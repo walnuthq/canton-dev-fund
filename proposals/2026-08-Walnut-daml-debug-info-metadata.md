@@ -198,8 +198,8 @@ debugger, it is not good enough.
 
 ### 4. How the debugger works
 
-C and C++ have used the same debugging model for decades, and this proposal
-copies it on purpose.
+Source-level debugging here follows the well-known approach from C and C++,
+which have worked this way for decades.
 
 A C++ toolchain writes debug info next to the compiled binary. It maps
 machine addresses back to source lines and records where values live. The
