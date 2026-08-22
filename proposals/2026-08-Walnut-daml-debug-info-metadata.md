@@ -273,7 +273,7 @@ builds, tools, and deployments are unaffected.
 
 ## Milestones and Deliverables
 
-### Milestone 1: Published specification and compiler fixes merged
+### Milestone 1: Specification and compiler fixes
 
 **Estimated Delivery:** 4 weeks from start<br>
 **Focus:** Agree the format with Daml maintainers and land the groundwork
@@ -295,7 +295,7 @@ in the official compiler.
   the compiler.
 - The two compiler fixes are **merged** into `digital-asset/daml`.
 
-### Milestone 2: Compiler and Daml Script emission merged
+### Milestone 2: Compiler and Daml Script emission
 
 **Estimated Delivery:** 8 weeks after Milestone 1 acceptance<br>
 **Focus:** Ship metadata emission and the runtime trace in the official
@@ -394,10 +394,10 @@ sharply in a week and this project runs for months.
 
 ### Payment Breakdown by Milestone
 
-- Milestone 1, Published specification and compiler fixes merged:
-  USD [amount] on acceptance.
-- Milestone 2, Compiler and Daml Script emission merged:
-  USD [amount] on acceptance.
+- Milestone 1, Specification and compiler fixes: USD [amount] on
+  acceptance.
+- Milestone 2, Compiler and Daml Script emission: USD [amount] on
+  acceptance.
 - Milestone 3, Verification and the reader library:
   USD [amount] on acceptance.
 - Milestone 4, Source-level debugging in our tools, and adoption:
