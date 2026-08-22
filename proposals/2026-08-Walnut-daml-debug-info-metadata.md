@@ -170,9 +170,9 @@ transaction did. Here we add the source side of it: the Daml line behind
 each transaction node, and for a failed submission, the assertion that
 rejected it instead of a text search for the error message.
 
-`dpm debug` is new work in this proposal. It replays the runtime trace from
-workstream C and steps through the run in the Daml source, showing the
-values it has and labeling the ones it does not have.
+`dpm debug` is new work in this proposal. It runs a Daml Script under the
+debugger, stops at breakpoints set on Daml lines, steps from there, and
+shows the values it has while labeling the ones it does not.
 
 Between them they are also the proof. If the metadata cannot drive a real
 debugger, it is not good enough.
