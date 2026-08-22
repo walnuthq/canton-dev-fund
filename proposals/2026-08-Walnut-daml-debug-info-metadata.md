@@ -16,16 +16,17 @@ reached it, or how execution got there. The compiler knows all of this, but
 nothing carries it from the compiler to the tools developers actually use.
 
 Walnut proposes to fix that. We will define a debug metadata format for
-Daml, make the Daml compiler emit it, and make our Canton debugging tools
-use it. The metadata maps a compiled package back to its source code, so a
+Daml, make the Daml compiler emit it, and build the tooling that uses it. The metadata maps a compiled package back to its source code, so a
 tool can point at the exact line that failed instead of guessing.
 
-We are already building the tools that need this. The Development Fund
-approved our
+We hit this problem building our own tool. The Development Fund approved
+our
 [DPM Trace Transaction Visualization](./dpm-trace-visualization.md)
-proposal, and we are building `dpm trace` and `dpm debug` now. This
-metadata is what turns them from transaction viewers into real source-level
-debugging tools.
+proposal, and we are building `dpm trace` now. It can show what a
+transaction did, but not which Daml code did it. This proposal supplies the
+missing metadata, uses it to add source-level views to `dpm trace`, and
+adds `dpm debug`, a new debugger that steps through a Daml run in the
+source.
 
 ---
 
@@ -43,18 +44,22 @@ Five things, one per milestone:
 4. **A reader library.** Code that loads the metadata, verifies it, and
    answers "which source line is this?", with example Daml packages we test
    against.
-5. **Source-level debugging in our Canton tools.** `dpm trace` and
-   `dpm debug` read the metadata, so developers get source lines and
-   honest values instead of raw ledger events.
+5. **The tooling that uses it.** Source-level views added to `dpm trace`,
+   which today shows a transaction without the Daml behind it, and
+   `dpm debug`, a new command-line debugger that steps through a Daml
+   Script run in the source.
 
 ## What we will not build
 
-The debugging tools themselves are not in this request. `dpm trace` and
-`dpm debug` are already funded by our approved DPM Trace proposal, and item
-5 above is only the work of teaching them to read the new metadata.
+`dpm trace` itself is not in this request. Its transaction inspection,
+visualization, and comparison features are funded by our approved DPM Trace
+proposal. Item 5 above adds the source-level side on top of what that
+proposal delivers.
 
-We are not building an IDE debugger or a VS Code extension, and we are not
-building a hosted registry of Daml source code.
+`dpm debug` is a command-line debugger. We are not building an IDE
+integration around it, so no VS Code extension and no Debug Adapter
+Protocol support. We are also not building a hosted registry of Daml source
+code.
 
 We are also not changing the Daml interpreter. One small interpreter change
 would allow stepping expression by expression inside a choice body. We
@@ -166,19 +171,23 @@ own parser. It ships with example Daml packages covering the cases that
 break naive implementations, including interfaces, contract keys, several
 packages at once, and two versions of the same package.
 
-#### E. Using it in our tools
+#### E. The tooling that uses it
 
-We wire the metadata into the tools funded by our approved
-[DPM Trace proposal](./dpm-trace-visualization.md):
+Metadata on its own helps nobody, so this proposal also builds the two
+pieces that turn it into something a developer uses.
 
-- `dpm trace` shows the source line behind each transaction node, and when
-  a submission fails it points at the assertion that rejected it rather
-  than searching for the error text.
-- `dpm debug` steps through a Daml Script run in the source, showing the
-  values it has and labeling the ones it does not.
+`dpm trace`, funded by our approved
+[DPM Trace proposal](./dpm-trace-visualization.md), can already show what a
+transaction did. Here we add the source side of it: the Daml line behind
+each transaction node, and for a failed submission, the assertion that
+rejected it instead of a text search for the error message.
 
-This is what proves the format works. If it cannot drive a real debugger,
-it is not good enough.
+`dpm debug` is new work in this proposal. It replays the runtime trace from
+workstream C and steps through the run in the Daml source, showing the
+values it has and labeling the ones it does not have.
+
+Between them they are also the proof. If the metadata cannot drive a real
+debugger, it is not good enough.
 
 ### 4. Architectural Alignment
 
@@ -273,9 +282,10 @@ toolchain.
 
 **Deliverables:**
 
-- `dpm trace` shows source locations for transactions and failed
+- `dpm trace` gains source locations for transactions and failed
   submissions.
-- `dpm debug` steps through Daml Script runs in the source.
+- `dpm debug`, the new command-line debugger, steps through Daml Script
+  runs in the source.
 - A worked example and walkthrough, from building a package to debugging a
   failure in it.
 - Feedback from at least three Canton developers or teams outside Walnut.
@@ -386,8 +396,8 @@ do.
 ## Maintenance
 
 Everything we produce is open source under Apache-2.0. Walnut maintains the
-specification, the reader library, and the `dpm trace` and `dpm debug`
-integrations. Once the compiler changes are merged, they are maintained in
+specification, the reader library, `dpm debug`, and the source-level
+features in `dpm trace`. Once the compiler changes are merged, they are maintained in
 `digital-asset/daml` like the rest of the compiler, which is the point of
 upstreaming them.
 
@@ -401,9 +411,9 @@ themselves:
 
 - **Canton.** The Development Fund approved our
   [DPM Trace Transaction Visualization](./dpm-trace-visualization.md)
-  proposal, and we are building `dpm trace` and `dpm debug` now. This
-  proposal comes directly out of that work: we hit the missing metadata
-  while building the debugger.
+  proposal and we are building `dpm trace` now. This proposal comes
+  directly out of that work: we hit the missing metadata while building
+  it.
 - **Starkware / Starknet.** We build the
   [Walnut Starknet Debugger](https://walnut.dev/), covering debug info
   generation, tracing, simulation, verification, and the hosted debugger
@@ -434,9 +444,9 @@ will work. In
 - The two compiler fixes that restore source locations for choices.
 - `daml script --debug-trace-file` writes the runtime trace.
 
-In [walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace), `dpm trace`
-already reads the metadata for source links and `dpm debug` steps through
-the traces.
+In [walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace) we have
+prototyped both sides of the tooling: `dpm trace` reading the metadata for
+source links, and an early `dpm debug` stepping through the traces.
 
 Appendix A.13 says exactly which parts of the specification the prototype
 emits today and which parts are Milestone 2 work.
