@@ -43,26 +43,9 @@ source.
    answers "which source line is this?", with example Daml packages we test
    against.
 5. **The tooling that uses it.** Source-level views added to `dpm trace`,
-   which today shows a transaction without the Daml behind it, and
-   `dpm debug`, a new command-line debugger that steps through a Daml
-   Script run in the source.
-
-## What we will not build
-
-`dpm trace` itself is not in this request. Its transaction inspection,
-visualization, and comparison features are funded by our approved DPM Trace
-proposal. Item 5 above adds the source-level side on top of what that
-proposal delivers.
-
-`dpm debug` is a command-line debugger. We are not building an IDE
-integration around it, so no VS Code extension and no Debug Adapter
-Protocol support. We are also not building a hosted registry of Daml source
-code.
-
-We are also not changing the Daml interpreter. One small interpreter change
-would allow stepping expression by expression inside a choice body. We
-describe it in Appendix A.10 so it is on record, but it belongs to a later
-proposal.
+   whose transaction inspection and visualization are already funded by the
+   approved DPM Trace proposal, and `dpm debug`, a new command-line
+   debugger that steps through a Daml Script run in the source.
 
 ---
 
