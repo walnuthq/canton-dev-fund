@@ -303,13 +303,11 @@ toolchain.
 
 **Acceptance Criteria:**
 
-- All three changes are **merged** into `digital-asset/daml`.
+- All three changes are **merged** into `digital-asset/daml`. An open
+  pull request is not delivery.
 - A developer can build any Daml package with a released or nightly build
   of the compiler and get valid metadata, with no absolute paths and no
   change to the package id.
-- If Daml maintainers decline the upstream change, the committee decides
-  whether to accept delivery through a documented alternative distribution
-  instead. We do not treat an open pull request as delivery.
 
 ### Milestone 3: Verification and the reader library
 
@@ -445,11 +443,14 @@ do.
 
 ## Risks and Mitigations
 
-- **Upstream review takes time.** Merging into `digital-asset/daml` is not
-  fully in our control. We open the two small fixes before this proposal is
-  voted on, so review starts early and maintainers can weigh in on the
-  approach before the larger changes arrive. Milestone 2 names the fallback
-  if they decline.
+- **Upstream review takes time.** We open the two small compiler fixes
+  before this proposal is voted on, so review starts early and maintainers
+  can weigh in on the approach long before the larger changes arrive.
+  Every change we send is small, additive, off by default, and covered by
+  tests, which is the shape most likely to be accepted. Digital Asset also
+  asked for this work: the review of our DPM Trace proposal requested a
+  separate proposal explaining the runtime changes that make debugging
+  possible, which is what section 4 does.
 - **The format misses something real.** The specification is not frozen
   until maintainers have reviewed it, and the prototype already covers real
   packages, so gaps show up as concrete cases rather than as opinions.
