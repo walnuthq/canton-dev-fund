@@ -142,11 +142,17 @@ what was traced, and where each of those happened in the source. This uses
 an extension point the interpreter already provides, so it needs no change
 to Canton.
 
-To follow execution inside a choice body, `daml build --debug` produces a
-debug build of the package carrying a step marker at each source location.
-Section 4 explains how a debugger uses those markers to stop. Marking is
-opt-in and separate from metadata emission, so an ordinary build still
-produces an identical package id.
+To follow execution inside a choice body, `daml build --debug-build`
+produces a debug build of the package carrying a step marker at each source
+location, and implies `--debug-info` so one flag is enough. Section 4
+explains how a debugger uses those markers to stop.
+
+The two flags are separate because they do different things to the
+artifact. `--debug-info` writes a file beside the DAR and never touches the
+package, so a production build can carry metadata and keep its package id.
+`--debug-build` compiles markers into the package, so its package id
+differs by construction. This is the same split as `-g` and `-O0` in C++,
+where the first is safe on a release build and the second is not.
 
 #### D. Verification and the reader library
 
@@ -213,7 +219,7 @@ The pieces line up:
 | --- | --- |
 | the DWARF file written beside the binary | `daml-debug-info/v1` written beside the DAR |
 | `-g`, which emits that debug info | `daml build --debug-info` |
-| `-O0`, which keeps the program steppable | `daml build --debug`, which plants a marker at every source location |
+| `-O0`, which keeps the program steppable | `daml build --debug-build`, which plants a marker at every source location |
 | the breakpoint instruction the debugger patches in | one of those markers |
 | the process stopping when it hits that instruction | the marker calling the interpreter's logging callback, which the debugger holds open |
 | `gdb` or `lldb` | `dpm debug` |
@@ -298,7 +304,7 @@ toolchain.
 **Deliverables:**
 
 - `damlc` emits `daml-debug-info/v1` behind a flag.
-- `daml build --debug` produces a debug build carrying step markers.
+- `daml build --debug-build` produces a debug build carrying step markers.
 - Daml Script writes the runtime debug trace.
 - The test proving the metadata flag does not change the compiled package.
 - Documentation for all three.
