@@ -35,17 +35,18 @@ source.
 1. **The format.** A published, versioned specification for Daml debug
    metadata, plus a JSON Schema so tools can check a file automatically.
    Appendix A is the current draft, written against a working prototype.
-2. **Compiler support.** `damlc` emits the metadata when asked, merged into
-   the official Daml repository so every Daml developer has it.
-3. **A runtime trace.** Daml Script writes a log of what a test run did and
-   where in the source each step happened, so a debugger can replay it.
+2. **Compiler support.** `damlc` emits the metadata when asked, and can
+   produce a debug build that a debugger is able to stop inside. Both go
+   into the official Daml repository.
+3. **A runtime trace.** Daml Script writes a log of what a run did and
+   where in the source each step happened.
 4. **A reader library.** Code that loads the metadata, verifies it, and
    answers "which source line is this?", with example Daml packages we test
    against.
 5. **The tooling that uses it.** Source-level views added to `dpm trace`,
    whose transaction inspection and visualization are already funded by the
    approved DPM Trace proposal, and `dpm debug`, a new command-line
-   debugger that steps through a Daml Script run in the source.
+   debugger with breakpoints and stepping over Daml source.
 
 ---
 
@@ -127,16 +128,21 @@ choice body. Both fixes are useful on their own, because they also improve
 Daml stack traces for everyone, so we send them upstream as separate pull
 requests before this proposal is voted on.
 
-#### C. Runtime trace
+#### C. Debug builds and the runtime trace
 
-`daml script --debug-trace-file <file>` writes a line-by-line log of a test
-run: which script started, what it submitted, which contracts were created
-and exercised, what was traced, and where each of those happened in the
-source. A debugger replays the log to step through a test.
+A run has to leave a record before a debugger can show anything.
 
-The log covers everything Daml Script can see. Stepping expression by
-expression inside a choice body needs the interpreter change described in
-Appendix A.10, which is not in this proposal.
+`daml script --debug-trace-file <file>` writes that record: which script
+started, what it submitted, which contracts were created and exercised,
+what was traced, and where each of those happened in the source. This uses
+an extension point the interpreter already provides, so it needs no change
+to Canton.
+
+To follow execution inside a choice body, `daml build --debug` produces a
+debug build of the package carrying a step marker at each source location.
+Section 4 explains how a debugger uses those markers to stop. Marking is
+opt-in and separate from metadata emission, so an ordinary build still
+produces an identical package id.
 
 #### D. Reader library and examples
 
@@ -170,7 +176,57 @@ values it has and labeling the ones it does not have.
 Between them they are also the proof. If the metadata cannot drive a real
 debugger, it is not good enough.
 
-### 4. Architectural Alignment
+### 4. How the debugger works
+
+C and C++ have used the same debugging model for decades, and this proposal
+copies it on purpose.
+
+A C++ toolchain writes debug info next to the compiled binary. It maps
+machine addresses back to source lines and records where values live. The
+debugger reads that file, and when the developer asks to break on a line it
+plants a trap at the matching address. When execution reaches the trap, the
+debugger takes over and shows them their own source.
+
+The pieces line up:
+
+| C++ | Daml, in this proposal |
+| --- | --- |
+| DWARF file beside the binary | `daml-debug-info/v1` beside the DAR |
+| compiling with `-g` | `daml build --experimental-debug-info` |
+| a build the debugger can stop inside | `daml build --debug`, which adds step markers |
+| the trap firing | a marker calling the interpreter's existing logging callback |
+| `gdb` or `lldb` | `dpm debug` |
+
+The one real difference is where the trap comes from. In C++ the operating
+system provides it, so the binary is untouched and the debugger stops the
+process from outside. Canton has no equivalent, and adding one would mean
+changing the Daml interpreter, the component that computes transactions on
+every validator. We are not proposing that. Nobody wants a debugger that
+can pause a live ledger, and the review burden on a consensus-critical
+component would be out of proportion to what it buys.
+
+So the compiler plants the traps instead, which is why interactive
+debugging uses a debug build. A debug build has a different package id from
+the production build, exactly as a `-g -O0` binary differs from a release
+binary, and it is used the same way: locally, on your own package, while
+you are working on it. The production build still carries debug info and
+still has an unchanged package id, which is what lets `dpm trace` put
+source locations on real transactions.
+
+Breakpoints then work the way a developer expects. Each marker calls the
+interpreter's logging callback synchronously, on the thread evaluating the
+choice body. `dpm debug` receives the call, compares it against the
+breakpoints the developer set, and either returns at once or holds until
+they step. Holding that call holds interpretation, which is what makes a
+real pause possible without touching Canton.
+
+Two limits are worth stating plainly. Values are shown when they appear in
+the trace and labeled as not captured otherwise, so this is not yet a full
+variable inspector. And it debugs Daml Script runs against a local ledger,
+not transactions running on someone else's validator, which no participant
+operator would allow in any case.
+
+### 5. Architectural Alignment
 
 Nothing here changes Canton. No protocol change, no node change, no change
 to how transactions are executed or what any party can see. The metadata
@@ -182,7 +238,7 @@ makes it correct under smart contract upgrades: two versions of a package
 have different ids and different metadata, so a tool always resolves
 against the version that actually ran.
 
-### 5. Backward Compatibility
+### 6. Backward Compatibility
 
 No backward compatibility impact. The metadata is new, optional, and
 written alongside the DAR rather than inside the package, so existing
@@ -223,9 +279,10 @@ toolchain.
 **Deliverables:**
 
 - `damlc` emits `daml-debug-info/v1` behind a flag.
+- `daml build --debug` produces a debug build carrying step markers.
 - Daml Script writes the runtime debug trace.
-- The test proving the flag does not change the compiled package.
-- Documentation for both.
+- The test proving the metadata flag does not change the compiled package.
+- Documentation for all three.
 
 **Acceptance Criteria:**
 
@@ -265,8 +322,8 @@ toolchain.
 
 - `dpm trace` gains source locations for transactions and failed
   submissions.
-- `dpm debug`, the new command-line debugger, steps through Daml Script
-  runs in the source.
+- `dpm debug`, the new command-line debugger, sets breakpoints on Daml
+  lines and steps through a run in the source.
 - A worked example and walkthrough, from building a package to debugging a
   failure in it.
 - Feedback from at least three Canton developers or teams outside Walnut.
@@ -275,8 +332,9 @@ toolchain.
 
 - A developer can take a failing Daml workflow and see the exact line that
   rejected it, without searching the source for the error message.
-- `dpm debug` steps through a Daml Script run showing source and values,
-  and says so when a value was not captured rather than guessing.
+- `dpm debug` stops at a breakpoint on a line inside a choice body, steps
+  from there, and shows the values it has while labeling the ones it does
+  not.
 - At least two testers outside Walnut confirm this is better than
   debugging without it.
 
@@ -429,7 +487,7 @@ In [walnuthq/dpm-trace](https://github.com/walnuthq/dpm-trace) we have
 prototyped both sides of the tooling: `dpm trace` reading the metadata for
 source links, and an early `dpm debug` stepping through the traces.
 
-Appendix A.13 says exactly which parts of the specification the prototype
+Appendix A.12 says exactly which parts of the specification the prototype
 emits today and which parts are Milestone 2 work.
 
 ---
@@ -452,7 +510,7 @@ prototype in
 [walnuthq/daml](https://github.com/walnuthq/daml/tree/feature/debug-info),
 not written from theory. During Milestone 1 it moves to a public location
 agreed with Daml maintainers and gains a machine-checkable JSON Schema. MUST, SHOULD, and MAY
-are used as in RFC 2119, and A.13 records where the implementation still
+are used as in RFC 2119, and A.12 records where the implementation still
 differs from this text.
 
 ### A.1 Artifact placement
@@ -748,18 +806,7 @@ and keep them out of version control. Local variables and intermediate
 expression values are **not** captured. Consumers must present them as
 `interpreter-only`, not invent them.
 
-### A.10 Runtime follow-up: interpreter location hook
-
-The reference runtime hooks the Daml Script layer only. Expression-level
-stepping *within* a choice body needs one additional Speedy interpreter
-hook, for which this specification reserves the shape: a
-`MachineLogger.onLocation(location: Location): Unit` method with a default
-no-op body, called from the machine's `SELocation` handling and gated so
-the disabled cost is one branch. With that hook, the same JSONL format
-gains `{"event":"step","location":{LOC}}` lines that join against `steps`.
-This is follow-up work, per this proposal's scoping.
-
-### A.11 Compiler changes in the reference implementation
+### A.10 Compiler changes in the reference implementation
 
 Beyond the emitter itself, two compiler fixes were needed to make
 choice-level debugging possible, both in the GHC to Daml-LF conversion:
@@ -786,7 +833,7 @@ A.2 producer invariant). Two consequences follow:
   upstream pull requests include DALF size and interpreter overhead
   measurements, so maintainers can judge the cost with data.
 
-### A.12 Validation rules for consumers
+### A.11 Validation rules for consumers
 
 - Reject unsupported major schema versions. Ignore unknown fields
   otherwise.
@@ -804,7 +851,7 @@ A.2 producer invariant). Two consequences follow:
   channel. For packages the consumer did not build, the strong check is to
   rebuild from source and compare package ids.
 
-### A.13 Reference implementation status
+### A.12 Reference implementation status
 
 The reference implementation
 (`walnuthq/daml@feature/debug-info`, `walnuthq/dpm-trace`) emits the
