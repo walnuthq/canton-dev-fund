@@ -92,9 +92,9 @@ choices there is nothing to print at all: their source locations are
 dropped during compilation, which is one of the compiler improvements this
 proposal upstreams.
 
-Every serious language toolchain solves this the same way, by writing debug
-metadata next to the compiled artifact: DWARF for native code, source maps
-for JavaScript, ETHDebug for EVM contracts. Daml has no equivalent yet. The
+Most mature language toolchains solve this the same way, by writing debug
+metadata next to the compiled artifact: DWARF for native code on Unix-like
+systems, source maps for JavaScript, ETHDebug for EVM contracts. Daml has no equivalent yet. The
 result is that each Canton tool, including ours, has to guess at source
 locations, and different tools guess differently.
 
