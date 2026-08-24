@@ -89,7 +89,7 @@ in a textual form meant for people rather than a format tools can depend
 on, and it carries no file paths and no source hashes, so a tool still
 cannot tell whether the file on disk is the one that was compiled. For
 choices there is nothing to print at all: their source locations are
-dropped during compilation, which is one of the two compiler fixes this
+dropped during compilation, which is one of the compiler improvements this
 proposal upstreams.
 
 Every serious language toolchain solves this the same way, by writing debug
