@@ -13,7 +13,7 @@
 When a Daml workflow fails on Canton, the developer sees an error message
 and a package id. They do not see which line of Daml failed, which values
 reached it, or how execution got there. The compiler knows all of this, but
-nothing carries it from the compiler to the tools developers actually use.
+nothing writes it down where a tool can read it.
 
 Walnut proposes to fix that. We will define a debug metadata format for
 Daml, make the Daml compiler emit it, and build the tooling that uses it. The metadata maps a compiled package back to its source code, so a
@@ -80,10 +80,17 @@ source for the error text, which breaks down as soon as two assertions
 share a message or a message is built at runtime. Nothing tells a developer
 which line ran, in which package version, with which values.
 
-Everything needed to fix this already exists inside the compiler. Daml-LF
-carries source locations, and the compiler knows which file every
-definition came from. That information is simply thrown away before it
-reaches any tool.
+Most of what is needed already exists inside the compiler. Daml-LF carries
+source locations, and the compiler knows which file every definition came
+from. What is missing is a way to get it out.
+
+`damlc inspect` comes closest. It prints a package, but it prints Daml-LF
+in a textual form meant for people rather than a format tools can depend
+on, and it carries no file paths and no source hashes, so a tool still
+cannot tell whether the file on disk is the one that was compiled. For
+choices there is nothing to print at all: their source locations are
+dropped during compilation, which is one of the two compiler fixes this
+proposal upstreams.
 
 Every serious language toolchain solves this the same way, by writing debug
 metadata next to the compiled artifact: DWARF for native code, source maps
