@@ -133,11 +133,11 @@ the same package id as one built without it, which is what makes the
 metadata safe to trust: it describes exactly the artifact you deploy. We
 prove this with a test that builds both ways and compares package ids.
 
-Two small fixes to the compiler are needed first. Source locations for
-choices are currently dropped during compilation, so no tool can point at a
-choice body. Both fixes are useful on their own, because they also improve
-Daml stack traces for everyone, so we send them upstream as separate pull
-requests before this proposal is voted on.
+We identified some gaps in the compiler while building the prototype.
+Source locations for choices are dropped during compilation, so no tool can
+point at a choice body. Closing that is worth doing on its own, because it
+also improves Daml stack traces for everyone, so the changes go upstream as
+separate pull requests before this proposal is voted on.
 
 #### C. Debug builds and the runtime trace
 
@@ -289,7 +289,7 @@ in the official compiler.
 **Deliverables:**
 
 - The `daml-debug-info/v1` specification published, with a JSON Schema.
-- The two compiler location fixes merged into `digital-asset/daml`,
+- The two compiler improvements merged into `digital-asset/daml`,
   including measurements of their effect on package size and interpreter
   speed.
 - A review of the format with Daml/Canton maintainers.
@@ -300,7 +300,7 @@ in the official compiler.
   choice arguments, payload fields, and failure sites.
 - Daml maintainers have reviewed the format and agree it is emittable by
   the compiler.
-- The two compiler fixes are **merged** into `digital-asset/daml`.
+- The two compiler improvements are **merged** into `digital-asset/daml`.
 
 ### Milestone 2: Compiler and Daml Script emission
 
@@ -437,13 +437,13 @@ and gets it right.
 
 ## Risks and Mitigations
 
-- **Upstream review takes time.** We open the two small compiler fixes
+- **Upstream review takes time.** We open the two compiler pull requests
   before this proposal is voted on, so review starts early and maintainers
   can weigh in on the approach long before the larger changes arrive.
   Every change we send is small, additive, off by default, and covered by
-  tests, which is the shape most likely to be accepted, and the two
-  prerequisite fixes stand on their own merits because they improve Daml
-  stack traces for everyone.
+  tests, which is the shape most likely to be accepted, and those two
+  stand on their own merits because they improve Daml stack traces for
+  everyone.
 - **The format misses something real.** The specification is not frozen
   until maintainers have reviewed it, and the prototype already covers real
   packages, so gaps show up as concrete cases rather than as opinions.
@@ -503,7 +503,7 @@ We built a prototype at
 
 - `daml build --debug-info` emits the metadata, taken from
   the compiled package rather than by reading source text.
-- The two compiler fixes that restore source locations for choices.
+- The two compiler improvements that restore source locations for choices.
 - `daml script --debug-trace-file` writes the runtime trace.
 - The draft specification and its JSON Schema.
 
