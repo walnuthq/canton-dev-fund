@@ -60,8 +60,7 @@ source.
 
 Give Daml developers accurate, source-level error messages and debugging.
 
-To do that, the metadata has to answer four questions about any compiled
-package:
+The metadata has to answer, for any compiled package:
 
 - Which source files produced it, and do the files on my disk still match?
 - Which line of source does each template, choice, and expression come
