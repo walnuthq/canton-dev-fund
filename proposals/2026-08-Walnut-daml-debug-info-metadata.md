@@ -12,8 +12,9 @@
 
 When a Daml workflow fails on Canton, the developer sees an error message
 and a package id. They do not see which line of Daml failed, which values
-reached it, or how execution got there. The compiler knows all of this, but
-nothing writes it down where a tool can read it.
+reached it, or how execution got there. The compiler knows all of this.
+Only fragments of it survive into the compiled package, and nothing gathers
+those into a form a tool can rely on.
 
 Walnut proposes to fix that. We will define a debug metadata format for
 Daml, make the Daml compiler emit it, and build the tooling that uses it. The metadata maps a compiled package back to its source code, so a
