@@ -135,9 +135,10 @@ prove this with a test that builds both ways and compares package ids.
 
 We identified some gaps in the compiler while building the prototype.
 Source locations for choices are dropped during compilation, so no tool can
-point at a choice body. Closing that is worth doing on its own, because it
-also improves Daml stack traces for everyone, so the changes go upstream as
-separate pull requests before this proposal is voted on.
+point at a choice body. Closing that gap is part of this work, in Milestone
+1, and the changes go upstream as their own pull requests rather than
+riding along with the metadata emission. They are worth having on their
+own, because they also improve Daml stack traces for everyone.
 
 #### C. Debug builds and the runtime trace
 
@@ -437,13 +438,12 @@ and gets it right.
 
 ## Risks and Mitigations
 
-- **Upstream review takes time.** We open the two compiler pull requests
-  before this proposal is voted on, so review starts early and maintainers
-  can weigh in on the approach long before the larger changes arrive.
-  Every change we send is small, additive, off by default, and covered by
-  tests, which is the shape most likely to be accepted, and those two
-  stand on their own merits because they improve Daml stack traces for
-  everyone.
+- **Upstream review takes time.** Milestone 1 opens the two compiler pull
+  requests first, so review starts early and maintainers can weigh in on
+  the approach long before the larger changes arrive. Every change we send
+  is small, additive, off by default, and covered by tests, which is the
+  shape most likely to be accepted, and those two stand on their own
+  merits because they improve Daml stack traces for everyone.
 - **The format misses something real.** The specification is not frozen
   until maintainers have reviewed it, and the prototype already covers real
   packages, so gaps show up as concrete cases rather than as opinions.
