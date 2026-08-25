@@ -140,7 +140,10 @@ point at a choice body. Closing that gap is part of this work, in Milestone
 
 #### C. Debug builds and the runtime trace
 
-A run has to leave a record before a debugger can show anything.
+We aim to bring record and replay debugging to Daml. A run writes down what
+it did and where in the source each step happened, and the debugger walks
+that recording afterwards, so a test that failed in CI can be examined
+without reproducing it first.
 
 `daml script --debug-trace-file <file>` writes that record: which script
 started, what it submitted, which contracts were created and exercised,
