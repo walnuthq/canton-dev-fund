@@ -207,9 +207,6 @@ rejected it.
 debugger, stops at breakpoints set on Daml lines, steps from there, and
 shows the values it has while labeling the ones it does not.
 
-Between them they are also the proof. If the metadata cannot drive a real
-debugger, it is not good enough.
-
 ### 4. How the debugger works
 
 Source-level debugging here follows the well-known approach from C and C++,
