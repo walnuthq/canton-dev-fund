@@ -108,7 +108,7 @@ why a workflow failed.
 #### A. The format
 
 We publish `daml-debug-info/v1` as a versioned specification with a JSON
-Schema. A metadata file describes one compiled package: its source files
+Schema. A metadata file describes a compiled package: its source files
 and their hashes, the source span of every template, choice, interface and
 value, the Daml-LF references that tie those back to ledger data, the
 places the package can fail, and step markers a debugger can walk.
@@ -280,7 +280,7 @@ builds, tools, and deployments are unaffected.
 
 ## Milestones and Deliverables
 
-### Milestone 1: Specification and compiler fixes
+### Milestone 1: Specification and compiler improvements
 
 **Estimated Delivery:** 4 weeks from start<br>
 **Focus:** Agree the format with Daml maintainers and land the groundwork
@@ -401,7 +401,7 @@ sharply in a week and this project runs for months.
 
 ### Payment Breakdown by Milestone
 
-- Milestone 1, Specification and compiler fixes: USD [amount] on
+- Milestone 1, Specification and compiler improvements: USD [amount] on
   acceptance.
 - Milestone 2, Compiler and Daml Script emission: USD [amount] on
   acceptance.
