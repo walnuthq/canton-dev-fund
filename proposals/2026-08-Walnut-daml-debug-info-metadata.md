@@ -209,8 +209,8 @@ shows the values it has while labeling the ones it does not.
 
 ### 4. How the debugger works
 
-Source-level debugging here follows the well-known approach from C and C++,
-which have worked this way for decades.
+Source-level debugging here follows the well-known approach from C and C++
+toolchains, which have worked this way for decades.
 
 A C++ toolchain writes debug info next to the compiled binary. It maps
 machine addresses back to source lines and records where values live. The
