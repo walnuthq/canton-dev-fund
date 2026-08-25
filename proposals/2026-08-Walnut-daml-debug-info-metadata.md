@@ -281,9 +281,8 @@ in the official compiler.
 **Deliverables:**
 
 - The `daml-debug-info/v1` specification published, with a JSON Schema.
-- The two compiler improvements merged into `digital-asset/daml`,
-  including measurements of their effect on package size and interpreter
-  speed.
+- The compiler improvements merged into `digital-asset/daml`, including
+  measurements of their effect on package size and interpreter speed.
 - A review of the format with Daml/Canton maintainers.
 
 **Acceptance Criteria:**
@@ -292,7 +291,7 @@ in the official compiler.
   choice arguments, payload fields, and failure sites.
 - Daml maintainers have reviewed the format and agree it is emittable by
   the compiler.
-- The two compiler improvements are **merged** into `digital-asset/daml`.
+- The compiler improvements are **merged** into `digital-asset/daml`.
 
 ### Milestone 2: Compiler and Daml Script emission
 
@@ -429,12 +428,12 @@ and gets it right.
 
 ## Risks and Mitigations
 
-- **Upstream review takes time.** Milestone 1 opens the two compiler pull
+- **Upstream review takes time.** Milestone 1 opens the compiler pull
   requests first, so review starts early and maintainers can weigh in on
   the approach long before the larger changes arrive. Every change we send
   is small, additive, off by default, and covered by tests, which is the
-  shape most likely to be accepted, and those two stand on their own
-  merits because they improve Daml stack traces for everyone.
+  shape most likely to be accepted, and they stand on their own merits
+  because they improve Daml stack traces for everyone.
 - **The format misses something real.** The specification is not frozen
   until maintainers have reviewed it, and the prototype already covers real
   packages, so gaps show up as concrete cases rather than as opinions.
@@ -494,7 +493,7 @@ We built a prototype at
 
 - `daml build --debug-info` emits the metadata, taken from
   the compiled package rather than by reading source text.
-- The two compiler improvements that restore source locations for choices.
+- The compiler improvements that restore source locations for choices.
 - `daml script --debug-trace-file` writes the runtime trace.
 - The draft specification and its JSON Schema.
 
