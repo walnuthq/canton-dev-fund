@@ -201,7 +201,7 @@ pieces that turn it into something a developer uses.
 [DPM Trace proposal](./dpm-trace-visualization.md), can already show what a
 transaction did. Here we add the source side of it: the Daml line behind
 each transaction node, and for a failed submission, the assertion that
-rejected it instead of a text search for the error message.
+rejected it.
 
 `dpm debug` is new work in this proposal. It runs a Daml Script under the
 debugger, stops at breakpoints set on Daml lines, steps from there, and
