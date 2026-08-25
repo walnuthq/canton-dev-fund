@@ -236,12 +236,10 @@ changing the Daml interpreter, the component that computes transactions on
 every validator. We are not proposing that.
 
 So the compiler plants the traps instead, which is why interactive
-debugging uses a debug build. A debug build has a different package id from
-the production build, exactly as a `-g -O0` binary differs from a release
-binary, and it is used the same way: locally, on your own package, while
-you are working on it. The production build still carries debug info and
-still has an unchanged package id, which is what lets `dpm trace` put
-source locations on real transactions.
+debugging uses a debug build, and why a debug build is used the way an
+`-O0` build is: locally, on your own package, while you are working on it.
+The production build is untouched and still carries debug info, which is
+what lets `dpm trace` put source locations on real transactions.
 
 Breakpoints then work the way a developer expects. Each marker calls the
 interpreter's logging callback synchronously, on the thread evaluating the
