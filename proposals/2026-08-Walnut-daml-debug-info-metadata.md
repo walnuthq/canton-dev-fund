@@ -153,8 +153,7 @@ to Canton.
 
 To follow execution inside a choice body, `daml build --debug-build`
 produces a debug build of the package carrying a step marker at each source
-location, and implies `--debug-info` so one flag is enough. Section 4
-explains how a debugger uses those markers to stop.
+location. Section 4 explains how a debugger uses those markers to stop.
 
 The two flags are separate because they do different things to the
 artifact. `--debug-info` writes a file beside the DAR and never touches the
