@@ -159,8 +159,10 @@ The two flags are separate because they do different things to the
 artifact. `--debug-info` writes a file beside the DAR and never touches the
 package, so a production build can carry metadata and keep its package id.
 `--debug-build` compiles markers into the package, so its package id
-differs by construction. This is the same split as `-g` and `-O0` in C++,
-where the first is safe on a release build and the second is not.
+differs by construction. C++ draws the same line between a release build
+with debug info (`-g -O2`) and a debug build (`-g -O0`): the first is the
+artifact you ship, the second is compiled differently so a debugger can
+stop anywhere.
 
 #### D. Verification and the reader library
 
@@ -223,8 +225,8 @@ The pieces line up:
 | C++ | Daml, in this proposal |
 | --- | --- |
 | the DWARF file written beside the binary | `daml-debug-info/v1` written beside the DAR |
-| `-g`, which emits that debug info | `daml build --debug-info` |
-| `-O0`, which keeps the program steppable | `daml build --debug-build`, which plants a marker at every source location |
+| a release build with debug info, `-g -O2` | `daml build --debug-info` |
+| a debug build, `-g -O0` | `daml build --debug-build`, which plants a marker at every source location |
 | the breakpoint instruction the debugger patches in | one of those markers |
 | the process stopping when it hits that instruction | the marker calling the interpreter's logging callback, which the debugger holds open |
 | `gdb` or `lldb` | `dpm debug` |
@@ -236,10 +238,10 @@ changing the Daml interpreter, the component that computes transactions on
 every validator. We are not proposing that.
 
 So the compiler plants the traps instead, which is why interactive
-debugging uses a debug build, and why a debug build is used the way an
-`-O0` build is: locally, on your own package, while you are working on it.
-The production build is untouched and still carries debug info, which is
-what lets `dpm trace` put source locations on real transactions.
+debugging uses a debug build: something you produce locally, on your own
+package, while you are working on it. What you ship is unaffected and still
+carries its debug info, which is what lets `dpm trace` put source locations
+on real transactions.
 
 Breakpoints then work the way a developer expects. Each marker calls the
 interpreter's logging callback synchronously, on the thread evaluating the
