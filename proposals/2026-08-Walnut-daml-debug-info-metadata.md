@@ -166,7 +166,7 @@ where the first is safe on a release build and the second is not.
 
 Debug info that is quietly wrong is worse than none, because the debugger
 will confidently point at the wrong line and the developer will believe it.
-Every serious debug format ships a verifier for that reason. LLVM checks
+Mature debug formats ship a verifier for that reason. LLVM checks
 debug metadata inside the compiler, and `llvm-dwarfdump --verify` checks it
 in a built binary. Daml needs the same, so verification is a deliverable
 here rather than a side effect of writing a reader.
