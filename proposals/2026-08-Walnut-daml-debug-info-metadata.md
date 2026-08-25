@@ -312,8 +312,7 @@ toolchain.
 - All changes are **merged** into `digital-asset/daml`. An open pull
   request is not delivery.
 - A developer can build any Daml package with a released or nightly build
-  of the compiler and get valid metadata, with no absolute paths and no
-  change to the package id.
+  of the compiler and get valid metadata.
 
 ### Milestone 3: Verification and the reader library
 
