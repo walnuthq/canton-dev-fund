@@ -305,12 +305,12 @@ toolchain.
 - `daml build --debug-build` produces a debug build carrying step markers.
 - Daml Script writes the runtime debug trace.
 - The test proving the metadata flag does not change the compiled package.
-- Documentation for all three.
+- Documentation for each.
 
 **Acceptance Criteria:**
 
-- All three changes are **merged** into `digital-asset/daml`. An open
-  pull request is not delivery.
+- All changes are **merged** into `digital-asset/daml`. An open pull
+  request is not delivery.
 - A developer can build any Daml package with a released or nightly build
   of the compiler and get valid metadata, with no absolute paths and no
   change to the package id.
