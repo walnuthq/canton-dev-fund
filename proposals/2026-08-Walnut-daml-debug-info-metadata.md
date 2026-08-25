@@ -136,9 +136,9 @@ prove this with a test that builds both ways and compares package ids.
 We identified some gaps in the compiler while building the prototype.
 Source locations for choices are dropped during compilation, so no tool can
 point at a choice body. Closing that gap is part of this work, in Milestone
-1, and the changes go upstream as their own pull requests rather than
-riding along with the metadata emission. They are worth having on their
-own, because they also improve Daml stack traces for everyone.
+1, and the changes go upstream as their own pull requests. They are worth
+having on their own, because they also improve Daml stack traces for
+everyone.
 
 #### C. Debug builds and the runtime trace
 
