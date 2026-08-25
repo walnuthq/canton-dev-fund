@@ -250,12 +250,6 @@ breakpoints the developer set, and either returns at once or holds until
 they step. Holding that call holds interpretation, which is what makes a
 real pause possible without touching Canton.
 
-Two limits are worth stating plainly. Values are shown when they appear in
-the trace and labeled as not captured otherwise, so this is not yet a full
-variable inspector. And it debugs Daml Script runs against a local ledger,
-not transactions running on someone else's validator, which no participant
-operator would allow in any case.
-
 ### 5. Architectural Alignment
 
 Nothing here changes Canton. No protocol change, no node change, no change
