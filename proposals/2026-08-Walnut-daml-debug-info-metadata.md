@@ -436,9 +436,6 @@ and gets it right.
 - **The format misses something real.** The specification is not frozen
   until maintainers have reviewed it, and the prototype already covers real
   packages, so gaps show up as concrete cases rather than as opinions.
-- **Tools overstate what they know.** The value availability rules are
-  part of the specification and are enforced by the verifier, so a file
-  that claims a value it cannot have fails before any tool reads it.
 
 ---
 
