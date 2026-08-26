@@ -403,6 +403,13 @@ sharply in a week and this project runs for months.
 - Milestone 4, Source-level debugging in our tools, and adoption:
   USD [amount] on acceptance.
 
+### Volatility Stipulation
+
+Core delivery across the four milestones is estimated at 21 weeks, under 6
+months. Should the project timeline extend beyond 6 months due to
+Committee-requested scope changes, any remaining milestones will be
+renegotiated to account for significant USD/CC price volatility.
+
 ---
 
 ## Co-Marketing
