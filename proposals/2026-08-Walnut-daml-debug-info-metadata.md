@@ -292,7 +292,8 @@ in the official compiler.
 - Daml maintainers have reviewed the format and agree it is emittable by
   the compiler.
 - The compiler improvements are open as pull requests against
-  `digital-asset/daml`, and we are addressing review comments.
+  `digital-asset/daml`, and we help the merging process by actively
+  addressing review comments.
 
 ### Milestone 2: Compiler and Daml Script emission
 
@@ -311,7 +312,8 @@ toolchain.
 **Acceptance Criteria:**
 
 - The emission changes are open as pull requests against
-  `digital-asset/daml`, and we are addressing review comments.
+  `digital-asset/daml`, and we help the merging process by actively
+  addressing review comments.
 - A developer can build any Daml package with a released or nightly build
   of the compiler and get valid metadata.
 
