@@ -374,10 +374,9 @@ toolchain.
 through the adoption window<br>
 **Focus:** Get the format used by Canton tools beyond our own.
 
-A format only pays off when more than one tool reads it, so adoption is
-where most of the value of this proposal sits. We start from a position
-other proposals do not: we are the first adopter ourselves, because our own
-Daml debugger depends on this metadata and ships on it.
+A format only pays off when tooling uses it, so adoption is where most of
+the value of this proposal sits. We are the first adopter ourselves: our
+own Daml debugger depends on this metadata and ships on it.
 
 **Deliverables:**
 
