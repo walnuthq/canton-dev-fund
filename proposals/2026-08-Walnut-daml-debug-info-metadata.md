@@ -281,7 +281,7 @@ in the official compiler.
 **Deliverables:**
 
 - The `daml-debug-info/v1` specification published, with a JSON Schema.
-- The compiler improvements merged into `digital-asset/daml`, including
+- The compiler improvements submitted to `digital-asset/daml`, including
   measurements of their effect on package size and interpreter speed.
 - A review of the format with Daml/Canton maintainers.
 
@@ -291,7 +291,9 @@ in the official compiler.
   choice arguments, payload fields, and failure sites.
 - Daml maintainers have reviewed the format and agree it is emittable by
   the compiler.
-- The compiler improvements are **merged** into `digital-asset/daml`.
+- The compiler improvements are open as pull requests against
+  `digital-asset/daml`, with tests and the measurements, and we see them
+  through review, responding to maintainer comments.
 
 ### Milestone 2: Compiler and Daml Script emission
 
@@ -309,8 +311,9 @@ toolchain.
 
 **Acceptance Criteria:**
 
-- All changes are **merged** into `digital-asset/daml`. An open pull
-  request is not delivery.
+- The emission changes are open as pull requests against
+  `digital-asset/daml`, with tests and documentation, and we see them
+  through review, responding to maintainer comments.
 - A developer can build any Daml package with a released or nightly build
   of the compiler and get valid metadata.
 
@@ -373,9 +376,9 @@ toolchain.
 ## Acceptance Criteria
 
 Each milestone above carries its own criteria, and those are the bar. Two
-apply throughout: the compiler work is delivered by being merged into the
-official Daml repository, not by being proposed, and every deliverable is
-open source under Apache-2.0.
+apply throughout: the compiler work is submitted to the official Daml
+repository and carried through review rather than kept in a fork, and
+every deliverable is open source under Apache-2.0.
 
 ---
 
