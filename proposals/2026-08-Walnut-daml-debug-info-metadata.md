@@ -346,10 +346,10 @@ toolchain.
 - Someone who is not us can go from a template or choice name to the right
   source line using only the published library and documentation.
 
-### Milestone 4: Source-level debugging in our tools, and adoption
+### Milestone 4: Source-level debugging in `dpm trace` and `dpm debug`
 
 **Estimated Delivery:** 5 weeks after Milestone 3 acceptance<br>
-**Focus:** Prove it works by shipping it to Canton developers.
+**Focus:** Put the metadata to work in the tools developers already use.
 
 **Deliverables:**
 
@@ -359,7 +359,6 @@ toolchain.
   lines and steps through a run in the source.
 - A worked example and walkthrough, from building a package to debugging a
   failure in it.
-- Feedback from at least three Canton developers or teams outside Walnut.
 
 **Acceptance Criteria:**
 
@@ -368,8 +367,43 @@ toolchain.
 - `dpm debug` stops at a breakpoint on a line inside a choice body, steps
   from there, and shows the values it has while labeling the ones it does
   not.
-- At least two testers outside Walnut confirm this is better than
-  debugging without it.
+
+### Milestone 5: Adoption
+
+**Estimated Delivery:** 4 weeks after Milestone 4 acceptance, plus support
+through the adoption window<br>
+**Focus:** Get the format used by Canton tools beyond our own.
+
+A format only pays off when more than one tool reads it, so adoption is
+where most of the value of this proposal sits. We start from a position
+other proposals do not: we are the first adopter ourselves, because our own
+Daml debugger depends on this metadata and ships on it.
+
+**Deliverables:**
+
+- Public release of the specification, JSON Schema, verifier, and reader
+  library, with a getting-started guide written for tool authors.
+- `dpm trace` and `dpm debug` released on the format, which makes Walnut
+  its first production consumer.
+- Work with the DamlCov team at Quantstamp to put source-level coverage on
+  top of the format, including hands-on help with their integration.
+- Outreach to other Canton tool authors who would benefit, among them
+  static analysis such as Certora's Daml package analyzer, Daml Code
+  Assistant and other IDE tooling, test reporters, and profilers.
+- A short demo video or recorded walkthrough.
+- Fixes for anything that blocks a tool author during the adoption window.
+- An adoption report: who integrated, what they built with it, and what the
+  format got wrong.
+
+**Acceptance Criteria:**
+
+- At least one tool outside Walnut reads `daml-debug-info/v1`, confirmed by
+  a public repository, pull request, or written statement from its authors.
+- At least three Canton developers or teams use the source-level debugging
+  workflow and give written feedback on whether it sped up their work.
+- A tool author can go from the published documentation to reading metadata
+  without help from us.
+- The adoption report is published, with concrete follow-up items.
 
 ---
 
@@ -386,6 +420,9 @@ every deliverable is open source under Apache-2.0.
 
 **Total Funding Request:** USD [amount to confirm], paid in Canton Coin.
 
+The funding is split so that roughly half is tied to delivery and roughly
+half is tied to adoption.
+
 Milestones are priced in US dollars. When a milestone is accepted, the
 payment is made in Canton Coin at the CC/USD rate at the time of payment,
 so the amount of CC varies and the value delivered does not. This removes
@@ -400,12 +437,14 @@ sharply in a week and this project runs for months.
   acceptance.
 - Milestone 3, Verification and the reader library:
   USD [amount] on acceptance.
-- Milestone 4, Source-level debugging in our tools, and adoption:
+- Milestone 4, Source-level debugging in `dpm trace` and `dpm debug`:
   USD [amount] on acceptance.
+- Milestone 5, Adoption: USD [amount] on acceptance and the adoption
+  criteria.
 
 ### Volatility Stipulation
 
-Core delivery across the four milestones is estimated at 21 weeks, under 6
+Delivery across the five milestones is estimated at 25 weeks, under 6
 months. Should the project timeline extend beyond 6 months due to
 Committee-requested scope changes, any remaining milestones will be
 renegotiated to account for significant USD/CC price volatility.
