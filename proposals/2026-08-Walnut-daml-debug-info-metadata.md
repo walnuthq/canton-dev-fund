@@ -17,7 +17,8 @@ Only fragments of it survive into the compiled package, and nothing gathers
 those into a form a tool can rely on.
 
 Walnut proposes to fix that. We will define a debug metadata format for
-Daml, make the Daml compiler emit it, and build the tooling that uses it. The metadata maps a compiled package back to its source code, so a
+Daml, make the Daml compiler emit it, and integrate it into tooling that
+uses it. The metadata maps a compiled package back to its source code, so a
 tool can point at the exact line that failed instead of guessing.
 
 We hit this problem building our own tool. The Development Fund approved
@@ -384,11 +385,17 @@ own Daml debugger depends on this metadata and ships on it.
   library, with a getting-started guide written for tool authors.
 - `dpm trace` and `dpm debug` released on the format, which makes Walnut
   its first production consumer.
-- Work with the DamlCov team at Quantstamp to put source-level coverage on
-  top of the format, including hands-on help with their integration.
-- Outreach to other Canton tool authors who would benefit, among them
-  static analysis such as Certora's Daml package analyzer, Daml Code
-  Assistant and other IDE tooling, test reporters, and profilers.
+- Hands-on integration support for any Canton tool author who takes the
+  format up: a worked integration for their case, answers while they
+  implement it, and fixes for whatever gaps they hit in the format or the
+  reader library.
+- Outreach to the tools that would gain most from source mapping. Static
+  analysis such as Certora's Daml package analyzer could point findings at
+  a file and line rather than a package. IDE tooling such as the Daml Code
+  Assistant could feed precise error locations back into its compile and
+  test loop. Test reporters and profilers need the same mapping. If the
+  DamlCov proposal is funded and the tool gets built, source-level coverage
+  is a natural fit and we will offer the same support there.
 - A short demo video or recorded walkthrough.
 - Fixes for anything that blocks a tool author during the adoption window.
 - An adoption report: who integrated, what they built with it, and what the
