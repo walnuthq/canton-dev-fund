@@ -385,10 +385,6 @@ own Daml debugger depends on this metadata and ships on it.
   library, with a getting-started guide written for tool authors.
 - `dpm trace` and `dpm debug` released on the format, which makes Walnut
   its first production consumer.
-- Hands-on integration support for any Canton tool author who takes the
-  format up: a worked integration for their case, answers while they
-  implement it, and fixes for whatever gaps they hit in the format or the
-  reader library.
 - Outreach to the tools that would gain most from source mapping. Static
   analysis such as Certora's Daml package analyzer could point findings at
   a file and line rather than a package. IDE tooling such as the Daml Code
