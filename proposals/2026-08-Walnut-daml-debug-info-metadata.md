@@ -411,6 +411,38 @@ own Daml debugger depends on this metadata and ships on it.
   without help from us.
 - The adoption report is published, with concrete follow-up items.
 
+### Milestone 6: Maintenance
+
+**Estimated Delivery:** a 12-month maintenance window following Milestone 5
+acceptance<br>
+**Focus:** Keep the format, the compiler support, and the tooling working
+as Daml and Canton move.
+
+**Deliverables:**
+
+- Compatibility with each Daml SDK release published during the window:
+  metadata emission, debug builds, and the runtime trace keep working as
+  the compiler and Daml Script evolve, with fixes upstreamed where they
+  belong.
+- Stewardship of the specification and JSON Schema: errata, clarifications,
+  and minor revisions driven by adopter feedback, without breaking v1
+  consumers.
+- Bug fixes and issue triage for the verifier, the reader library,
+  `dpm debug`, and the source-level features in `dpm trace`.
+- Integration support for tool authors adopting the format, continuing the
+  Milestone 5 outreach.
+- A quarterly maintenance report: fixes shipped, issues triaged, SDK
+  compatibility status, and new integrations.
+
+**Acceptance Criteria:**
+
+- The repositories remain healthy across the window: green CI, no
+  outstanding critical defects, external issues and pull requests triaged
+  within a reasonable SLA.
+- The metadata and tooling work against each Daml SDK release published
+  during the window, verified by the example packages.
+- The quarterly maintenance report is published each quarter.
+
 ---
 
 ## Acceptance Criteria
@@ -424,36 +456,41 @@ every deliverable is open source under Apache-2.0.
 
 ## Funding
 
-**Total Funding Request:** USD [amount to confirm], paid in Canton Coin.
+**Total Funding Request:** 3,360,000 Canton Coin (CC).
 
-The funding is split so that roughly half is tied to delivery and roughly
-half is tied to adoption.
+The funding is split roughly half to delivery, a quarter to ecosystem
+adoption, and a quarter to a 12-month maintenance window.
 
-Milestones are priced in US dollars. When a milestone is accepted, the
-payment is made in Canton Coin at the CC/USD rate at the time of payment,
-so the amount of CC varies and the value delivered does not. This removes
-the price risk that a fixed CC amount puts on both sides, since CC can move
-sharply in a week and this project runs for months.
+Milestones are denominated in fixed Canton Coin.
 
 ### Payment Breakdown by Milestone
 
-- Milestone 1, Specification and compiler improvements: USD [amount] on
+- Milestone 1, Specification and compiler improvements: 300,000 CC upon
+  committee acceptance.
+- Milestone 2, Compiler and Daml Script emission: 600,000 CC upon committee
   acceptance.
-- Milestone 2, Compiler and Daml Script emission: USD [amount] on
-  acceptance.
-- Milestone 3, Verification and the reader library:
-  USD [amount] on acceptance.
+- Milestone 3, Verification and the reader library: 300,000 CC upon
+  committee acceptance.
 - Milestone 4, Source-level debugging in `dpm trace` and `dpm debug`:
-  USD [amount] on acceptance.
-- Milestone 5, Adoption: USD [amount] on acceptance and the adoption
-  criteria.
+  350,000 CC upon committee acceptance.
+- Milestone 5, Adoption: 850,000 CC upon committee acceptance and the
+  adoption criteria.
+- Milestone 6, Maintenance: 960,000 CC across a 12-month window following
+  Milestone 5 acceptance, paid 240,000 CC per quarter against the quarterly
+  maintenance report.
 
 ### Volatility Stipulation
 
 Delivery across the five milestones is estimated at 25 weeks, under 6
 months. Should the project timeline extend beyond 6 months due to
-Committee-requested scope changes, any remaining milestones will be
-renegotiated to account for significant USD/CC price volatility.
+Committee-requested scope changes or upstream review timelines outside our
+control, any remaining milestones will be renegotiated to account for
+significant USD/CC price volatility. Should the Milestone 5 adoption window
+run past the 6-month mark, the remaining Milestone 5 amount may be
+re-evaluated in the same way at that point. The Milestone 6 maintenance
+window runs 12 months and is paid quarterly, which limits volatility
+exposure to one quarter at a time, and its remaining quarters may likewise
+be re-evaluated at the window's 6-month mark, per CIP-0100.
 
 ---
 
@@ -496,11 +533,16 @@ and gets it right.
 
 ## Maintenance
 
-Everything we produce is open source under Apache-2.0. Walnut maintains the
-specification, the verifier and reader library, `dpm debug`, and the
-source-level features in `dpm trace`. Once the compiler changes are merged, they are maintained in
-`digital-asset/daml` like the rest of the compiler, which is the point of
-upstreaming them.
+Everything we produce is open source under Apache-2.0. Milestone 6 funds a
+12-month maintenance window following Milestone 5 acceptance: compatibility
+with each Daml SDK release, stewardship of the specification, bug fixes
+across the verifier, the reader library, `dpm debug` and `dpm trace`, and
+integration support for adopters, reported quarterly. Once the compiler
+changes are merged, they are maintained in `digital-asset/daml` like the
+rest of the compiler, which is the point of upstreaming them. Beyond the
+funded window, Walnut remains the natural steward of the specification and
+tooling. Everything is open, so stewardship can transfer to the Foundation
+or another maintainer without loss if it ever needs to.
 
 ---
 
