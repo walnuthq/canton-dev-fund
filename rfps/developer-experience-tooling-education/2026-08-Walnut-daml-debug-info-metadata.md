@@ -1,10 +1,15 @@
 # Development Fund Proposal: Versioned Debug Info Metadata for Daml
 
-**Author:** [Walnut](https://walnut.dev)<br>
-**Status:** Draft<br>
+**Organization:** [Walnut](https://walnut.dev)<br>
+**Authors / Primary Contacts:** Roman Mazur, CEO ([roman@walnut.dev](mailto:roman@walnut.dev)); Djordje Todorovic, CTO ([djordje@walnut.dev](mailto:djordje@walnut.dev))<br>
+**Status:** Submitted<br>
 **Created:** 2026-08-19<br>
-**Label:** daml-tooling<br>
+**Proposal Type:** RFP-aligned<br>
+**RFP / Roadmap Area:** RFP 19, DPM Components and Extension Ecosystem<br>
 **Champion:** Curtis Hrischuk, Digital Asset (curtis.hrischuk@digitalasset.com)<br>
+**Total Funding Request:** 3,360,000 Canton Coin (CC)<br>
+**Project Duration:** 25 weeks of delivery and adoption, followed by 12 months of maintenance<br>
+**Label:** daml-tooling<br>
 
 ---
 
@@ -24,7 +29,7 @@ tool can point at the exact line that failed instead of guessing.
 
 We hit this problem building our own tool. The Development Fund approved
 our
-[DPM Trace Transaction Visualization](./2026-08-Walnut-dpm-trace-visualization.md)
+[DPM Trace Transaction Visualization](../../proposals/2026-08-Walnut-dpm-trace-visualization.md)
 proposal, and we are building `dpm trace` now. It can show what a
 transaction did, but not which Daml code did it. This proposal supplies the
 missing metadata, uses it to add source-level views to `dpm trace`, and
@@ -208,7 +213,7 @@ Metadata on its own helps nobody, so this proposal also builds the two
 pieces that turn it into something a developer uses.
 
 `dpm trace`, funded by our approved
-[DPM Trace proposal](./2026-08-Walnut-dpm-trace-visualization.md), can already show what a
+[DPM Trace proposal](../../proposals/2026-08-Walnut-dpm-trace-visualization.md), can already show what a
 transaction did. Here we add the source side of it: the Daml line behind
 each transaction node, and for a failed submission, the assertion that
 rejected it.
@@ -275,6 +280,30 @@ against the version that actually ran.
 No backward compatibility impact. The metadata is new, optional, and
 written alongside the DAR rather than inside the package, so existing
 builds, tools, and deployments are unaffected.
+
+---
+
+## Dev Fund 2.0 Alignment
+
+**RFP mapping.** This proposal addresses [RFP 19, DPM Components and
+Extension Ecosystem](../../2026-2028-strategic-roadmap.md), which explicitly
+includes debugging workflows. The metadata format, compiler support, and
+reader library enable source-level debugging through `dpm debug`,
+`dpm debug-info verify`, and source links in `dpm trace`.
+
+**Ecosystem need and beneficiaries.** Daml application developers need to
+connect transaction failures and execution results to their Daml source
+code. Tool authors need a shared, verified mapping between compiled packages
+and source files. This proposal provides that mapping, so each debugger,
+test reporter, or analysis tool does not have to build its own. The format
+and reader library will be open source and available to other Canton tools.
+
+**Adoption.** M5 requires `dpm trace` and `dpm debug` to be released with
+source-level debugging, and at least three Canton developers or teams to
+use the workflow and provide written feedback on whether it sped up their
+work. Walnut will publish an adoption report and support tool authors
+integrating the metadata. The potential integrations listed in M5 are
+outreach targets, not confirmed adopters.
 
 ---
 
@@ -552,7 +581,7 @@ for blockchains, and we build it in collaboration with the teams behind the
 blockchain platforms themselves:
 
 - **Canton.** The Development Fund approved our
-  [DPM Trace Transaction Visualization](./2026-08-Walnut-dpm-trace-visualization.md)
+  [DPM Trace Transaction Visualization](../../proposals/2026-08-Walnut-dpm-trace-visualization.md)
   proposal and we are building `dpm trace` now. This proposal comes
   directly out of that work: we hit the missing metadata while building
   it.
@@ -602,7 +631,7 @@ emits today and which parts are Milestone 2 work.
 ## References
 
 - Approved proposal this builds on:
-  [DPM Trace Transaction Visualization](./2026-08-Walnut-dpm-trace-visualization.md)
+  [DPM Trace Transaction Visualization](../../proposals/2026-08-Walnut-dpm-trace-visualization.md)
 - Draft specification:
   [daml-debug-info-v1.md](https://github.com/walnuthq/daml/blob/feature/debug-info/sdk/compiler/damlc/daml-debug-info-v1.md)
 - Prototype compiler and runtime:
