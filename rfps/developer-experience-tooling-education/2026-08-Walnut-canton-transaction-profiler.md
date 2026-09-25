@@ -1,12 +1,11 @@
 # Development Fund Proposal: Canton Transaction Profiler
 
 **Organization:** [Walnut](https://walnut.dev)<br>
-**Authors / Primary Contacts:** Roman Mazur, CEO ([roman@walnut.dev](mailto:roman@walnut.dev)); Djordje Todorovic, CTO ([djordje@walnut.dev](mailto:djordje@walnut.dev))<br>
+**Authors / Primary Contacts:** Roman Mazur, CEO ([roman@walnut.dev](mailto:roman@walnut.dev)); Djordje Todorovic, CTO ([djordje@walnut.dev](mailto:djordje@walnut.dev)); Marija Mijailovic, Software Engineer ([marija@walnut.dev](mailto:marija@walnut.dev))<br>
 **Status:** Draft<br>
-**Created:** 2026-09-17<br>
+**Created:** 2026-09-25<br>
 **Proposal Type:** RFP-aligned<br>
-**RFP / Roadmap Area:** RFP 18, Integration into SDLCs, and RFP 19, DPM
-Components and Extension Ecosystem<br>
+**RFP / Roadmap Area:** RFP 18 (Integration into SDLCs) and RFP 19 (DPM Components and Extension Ecosystem)<br>
 **Champion:** Curtis Hrischuk, Digital Asset (curtis.hrischuk@digitalasset.com)<br>
 **Total Funding Request:** 2,700,000 Canton Coin (CC)<br>
 **Project Duration:** 18 weeks, followed by 12 months of maintenance<br>
@@ -78,7 +77,7 @@ unavailable status.
 
 ## Dev Fund 2.0 Alignment
 
-**RFP mapping.** RFP 19, DPM Components and Extension Ecosystem, explicitly includes “fee estimators” and “observability tools”. `dpm profile` addresses both through transaction size and estimated cost reports, execution profiles, and links to Daml code. RFP 18, Integration into SDLCs, is addressed by test-suite reports, comparisons, and CI checks. See the [Foundation roadmap](https://github.com/canton-foundation/canton-dev-fund/blob/main/2026-2028-strategic-roadmap.md).
+**RFP mapping.** RFP 19 (DPM Components and Extension Ecosystem) explicitly includes “fee estimators” and “observability tools”. `dpm profile` addresses both through transaction size and estimated cost reports, execution profiles, and links to Daml code. RFP 18 (Integration into SDLCs) is addressed by test-suite reports, comparisons, and CI checks. See the [Foundation roadmap](https://github.com/canton-foundation/canton-dev-fund/blob/main/2026-2028-strategic-roadmap.md).
 
 **Ecosystem need and beneficiaries.** Daml application developers and teams maintaining Canton test suites need to understand which code contributes to transaction size and execution time. The profiler will help them evaluate code changes and detect regressions before release.
 
@@ -330,8 +329,8 @@ Analysis and CI artifacts can remain within the team's environment.
 
 ### Ecosystem scope
 
-The proposal addresses [RFP 18, Integration into SDLCs](https://github.com/canton-foundation/canton-dev-fund/blob/main/2026-2028-strategic-roadmap.md?plain=1#L204),
-and [RFP 19, DPM Components and Extension Ecosystem](https://github.com/canton-foundation/canton-dev-fund/blob/main/2026-2028-strategic-roadmap.md?plain=1#L207).
+The proposal addresses [RFP 18 (Integration into SDLCs)](https://github.com/canton-foundation/canton-dev-fund/blob/main/2026-2028-strategic-roadmap.md?plain=1#L204)
+and [RFP 19 (DPM Components and Extension Ecosystem)](https://github.com/canton-foundation/canton-dev-fund/blob/main/2026-2028-strategic-roadmap.md?plain=1#L207).
 
 | Related work | Scope |
 | --- | --- |
